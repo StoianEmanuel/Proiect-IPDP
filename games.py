@@ -195,7 +195,7 @@ def update_game(game_id):
 
 @app.route('/games/delete_data', methods=['DELETE'])
 def delete_game():
-     # Check if the id is provided in the query string
+    # Check if the id is provided in the query string
     id = request.args.get('id')
     if id is None:
         # Return error response if id is not provided
