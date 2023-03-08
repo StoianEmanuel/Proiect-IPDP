@@ -68,8 +68,8 @@ def get_data():
         return jsonify(error_response), 400
 
     # Retrieve up to 100 games
-    #limit = min(request.args.get('limit', default=10, type=int), 10)
-    #games = get_all_games(limit=limit)
+    # limit = min(request.args.get('limit', default=10, type=int), 10)
+    # games = get_all_games(limit=limit)
 
     # Retrieve all games
     games = get_all_games()
@@ -170,6 +170,8 @@ def get_game_data():
     )
     return response
 
+
+"""
 # Function to add a new game
 
 
@@ -206,7 +208,7 @@ def delete_game(game_id):
     conn.execute('DELETE FROM games WHERE id = ?', (game_id,))
     conn.commit()
     conn.close()
-    return jsonify({'message': 'Game deleted successfully'})
+    return jsonify({'message': 'Game deleted successfully'})"""
 
 
 if __name__ == '__main__':
