@@ -66,13 +66,25 @@ def get_data():
             'error': 'Invalid data type'
         }
         return jsonify(error_response), 400
+    
+    # Check if snippet parameter is provided
+    snippet = request.args.get('snippet')
+    if snippet is None:
+        # Return error response if snippet parameter is missing
+        error_response = {
+            'error': 'snippet parameter is missing'
+        }
+        return jsonify(error_response), 400
 
+    # Retrieve games based on the value of snippet parameter
+    if snippet.lower() == 'true':
+        # Retrieve first 10 games
+        games = get_all_games(limit=10)
+    else:
+        # Retrieve all games
+        games = get_all_games()
     # Retrieve up to 100 games
-    # limit = min(request.args.get('limit', default=10, type=int), 10)
     # games = get_all_games(limit=limit)
-
-    # Retrieve all games
-    games = get_all_games()
 
     # Create JSON-LD document
     context = {
@@ -171,45 +183,5 @@ def get_game_data():
     return response
 
 
-"""
-# Function to add a new game
-
-
-@app.route('/games', methods=['POST'])
-def add_game():
-    conn = get_db_connection()
-    game_data = request.json
-    game = (game_data['name'], game_data['platform'], game_data['year_of_release'], game_data['genre'], game_data['publisher'], game_data['na_sales'], game_data['eu_sales'], game_data['jp_sales'],
-            game_data['other_sales'], game_data['global_sales'], game_data['critic_score'], game_data['critic_count'], game_data['user_score'], game_data['user_count'], game_data['developer'], game_data['rating'])
-    conn.execute('INSERT INTO games (name, platform, year_of_release, genre, publisher, na_sales, eu_sales, jp_sales, other_sales, global_sales, critic_score, critic_count, user_score, user_count, developer, rating) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', game)
-    conn.commit()
-    conn.close()
-    return jsonify({'message': 'Game added successfully'}), 201
-
-# Function to update a game
-
-
-@app.route('/games/<int:game_id>', methods=['PUT'])
-def update_game(game_id):
-    conn = get_db_connection()
-    game_data = request.json
-    game = (game_data['name'], game_data['platform'], game_data['year_of_release'], game_data['genre'], game_data['publisher'], game_data['na_sales'], game_data['eu_sales'], game_data['jp_sales'],
-            game_data['other_sales'], game_data['global_sales'], game_data['critic_score'], game_data['critic_count'], game_data['user_score'], game_data['user_count'], game_data['developer'], game_data['rating'], game_id)
-    conn.execute('UPDATE games SET name = ?, platform = ?, year_of_release = ?, genre = ?, publisher = ?, na_sales = ?, eu_sales = ?, jp_sales = ?, other_sales = ?, global_sales = ?, critic_score = ?, critic_count = ?, user_score = ?, user_count = ?, developer = ?, reting = ? WHERE id = ?', game)
-    conn.commit()
-    conn.close()
-    return jsonify({'message': 'Game updated successfully'})
-
-# Function to delete a game
-
-@app.route('/games/<int:game_id>', methods=['DELETE'])
-def delete_game(game_id):
-    conn = get_db_connection()
-    conn.execute('DELETE FROM games WHERE id = ?', (game_id,))
-    conn.commit()
-    conn.close()
-    return jsonify({'message': 'Game deleted successfully'})"""
-
-
 if __name__ == '__main__':
-    app.run(port=8020)
+    app.run(port=8040)
