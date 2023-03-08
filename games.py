@@ -11,16 +11,19 @@ app.config['SQLITE_DB_NAME'] = 'games.db'
 # Retrieve all games from the database
 
 
-def get_all_games():
+def get_all_games(limit=None):
     conn = sqlite3.connect(
         f"{app.config['SQLITE_DB_DIR']}/{app.config['SQLITE_DB_NAME']}")
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM games")
+    if limit is None:
+        cursor.execute("SELECT * FROM games")
+    else:
+        cursor.execute("SELECT * FROM games LIMIT ?", (limit,))
     rows = cursor.fetchall()
     games = []
     for row in rows:
         game = {
-            'id': row[0],
+            '@id': row[0],
             'name': row[1],
             'platform': row[2],
             'year_of_release': row[3],
@@ -64,6 +67,10 @@ def get_data():
         }
         return jsonify(error_response), 400
 
+    # Retrieve up to 100 games
+    #limit = min(request.args.get('limit', default=10, type=int), 10)
+    #games = get_all_games(limit=limit)
+
     # Retrieve all games
     games = get_all_games()
 
@@ -97,7 +104,7 @@ def get_game_by_id(id):
     row = cursor.fetchone()
     if row:
         game = {
-            'id': row[0],
+            '@id': row[0],
             'name': row[1],
             'platform': row[2],
             'year_of_release': row[3],
@@ -193,31 +200,14 @@ def update_game(game_id):
 
 # Function to delete a game
 
-@app.route('/games/delete_data', methods=['DELETE'])
-def delete_game():
-    # Check if the id is provided in the query string
-    id = request.args.get('id')
-    if id is None:
-        # Return error response if id is not provided
-        error_response = {
-            'error': 'id parameter is missing'
-        }
-        return jsonify(error_response), 400
-    
-    game = get_game_by_id(id)
-    if game is None:
-        # Return error response if game is not found
-        error_response = {
-            'error': 'Game not found'
-        }
-        return jsonify(error_response), 404
-    
+@app.route('/games/<int:game_id>', methods=['DELETE'])
+def delete_game(game_id):
     conn = get_db_connection()
-    conn.execute('DELETE FROM games WHERE id = ?', (id,))
+    conn.execute('DELETE FROM games WHERE id = ?', (game_id,))
     conn.commit()
     conn.close()
     return jsonify({'message': 'Game deleted successfully'})
 
 
 if __name__ == '__main__':
-    app.run(port=8050)
+    app.run(port=8010)
