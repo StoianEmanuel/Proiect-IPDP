@@ -80,7 +80,7 @@ def get_data_games():
     if snippet.lower() == 'true':
         # Retrieve first 10 games
         games = get_all_games(limit=10)
-    else:
+    elif snippet.lower == 'false':
         # Retrieve all games
         games = get_all_games()
     # Retrieve up to 100 games
