@@ -23,13 +23,25 @@ def get_all_games(limit=None):
     conn = sqlite3.connect(
         f"{app.config['SQLITE_DB_DIR']}/{app.config['SQLITE_DB_NAME']}")
     cursor = conn.cursor()
-    if limit is None:
-        cursor.execute("SELECT * FROM videogames")
-    else:
-        cursor.execute("SELECT * FROM videogames LIMIT ?", (limit,))
+    cursor.execute("SELECT * FROM videogames")
+    # if limit is None:
+    #  cursor.execute("SELECT * FROM videogames")
+    # else:
+    # cursor.execute("SELECT * FROM videogames LIMIT ?", (limit,))
     rows = cursor.fetchall()
     games = []
+    l = 0
     for row in rows:
+        count = 0
+        for i in range(0, len(row)):
+            if i == 1 or i == 2 or i == 4 or i == 5 or i == 15 or i == 16:
+                if row[i].upper() == 'NULL' or row[i] == '':
+                    count += 1
+            elif i == 3 and row[3].upper() != 'N/A':
+                if int(row[3]) < 1970:
+                    count += 1
+            elif i == 4 and int(row[4]) == 0:
+                count += 1
         game = {
             '@id': row[0],
             'name': row[1],
@@ -49,7 +61,12 @@ def get_all_games(limit=None):
             'developer': row[15],
             'rating': row[16]
         }
-        games.append(game)
+        if count < 4:
+            if limit is None:
+                games.append(game)
+            elif l < int(limit):
+                games.append(game)
+                l += 1
     conn.close()
     return games
 
@@ -61,13 +78,24 @@ def get_all_consoles(limit=None):
     conn = sqlite3.connect(
         f"{app.config['SQLITE_DB_DIR']}/{app.config['SQLITE_DB_NAME']}")
     cursor = conn.cursor()
-    if limit is None:
-        cursor.execute("SELECT * FROM consoles")
-    else:
-        cursor.execute("SELECT * FROM consoles LIMIT ?", (limit,))
+    cursor.execute("SELECT * FROM consoles")
+    # if limit is None:
+    #   cursor.execute("SELECT * FROM consoles")
+    # else:
+    #   cursor.execute("SELECT * FROM consoles LIMIT ?", (limit,))
     rows = cursor.fetchall()
     consoles = []
+    l = 0
     for row in rows:
+        count = 0
+        for i in range(0, len(row)):
+            if i == 1 or i == 2 or i == 5:
+                if row[i].upper() == 'NULL' or row[i] == '':
+                    count += 1
+            elif i == 3 and int(row[3]) < 1970:
+                count += 1
+            elif i == 4 and int(row[4]) == 0:
+                count += 1
         console = {
             '@id': row[0],
             'name': row[1],
@@ -77,7 +105,12 @@ def get_all_consoles(limit=None):
             'type': row[5],
             'number_of_exclusives': row[6]
         }
-        consoles.append(console)
+        if count < 3:
+            if limit is None:
+                consoles.append(console)
+            elif l < int(limit):
+                consoles.append(console)
+                l += 1
     conn.close()
     return consoles
 
@@ -113,11 +146,11 @@ def get_data():
 
         # Create JSON-LD document
         context = {
-            "@schema": "sqlite"
+            "@schema": "sqlite/consoles"
         }
         data = {
             "@context": context,
-            "@type": "consoles",
+            # "@type": "consoles",
             "@list": consoles
         }
         json_ld_doc = json.dumps(data)
@@ -153,11 +186,11 @@ def get_data():
 
         # Create JSON-LD document
         context = {
-            "@schema": "sqlite"
+            "@schema": "sqlite/games"
         }
         data = {
             "@context": context,
-            "@type": "video games",
+            # "@type": "video games",
             "@list": games
         }
         json_ld_doc = json.dumps(data)
@@ -171,13 +204,14 @@ def get_data():
         return response
 
     else:
-        # Return error response if data_type is not games
+        # Return error response if data_type is not games or consoles
         error_response = {
             'error': 'Invalid data type'
         }
         return jsonify(error_response), 400
 
 
+"""
 # Retrieve a game from the database by id
 
 
@@ -320,8 +354,8 @@ def get_console_data():
         status=200,
         mimetype='application/ld+json'
     )
-    return response
+    return response """
 
 
 if __name__ == '__main__':
-    app.run(port=8050)
+    app.run(debug=True, port=8040)
