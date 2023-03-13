@@ -5,14 +5,14 @@ from json import dumps
 
 app = Flask(__name__)
 
-app.config['SQLITE_DB_DIR'] = 'DB'
+app.config['SQLITE_DB_DIR'] = './'
 app.config['SQLITE_DB_NAME'] = 'gaming.sqlite'
 
 # Function to establish connection with the database
 
 
 def get_db_connection():
-    conn = sqlite3.connect('DB\gaming.sqlite')
+    conn = sqlite3.connect('./gaming.sqlite')
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -45,7 +45,6 @@ def get_all_games(limit=None):
         game = {
             '@id': row[0],
             'name': row[1],
-            'platform': row[2],
             'year_of_release': row[3],
             'genre': row[4],
             'publisher': row[5],
@@ -117,7 +116,7 @@ def get_all_consoles(limit=None):
 # Define the route to retrieve all games/consoles
 
 
-@app.route('/sqlite/gaming/get_data', methods=['GET'])
+@app.route('/get_data', methods=['GET'])
 def get_data():
     # Check if data_type is set to either games or consoles
     data_type = request.args.get('data_type')
@@ -358,4 +357,4 @@ def get_console_data():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=8040)
+    app.run(debug=True, port=5000)
