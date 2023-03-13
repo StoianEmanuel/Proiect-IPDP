@@ -6,13 +6,13 @@ from json import dumps
 app = Flask(__name__)
 
 app.config['SQLITE_DB_DIR'] = 'DB'
-app.config['SQLITE_DB_NAME'] = 'gaming.db'
+app.config['SQLITE_DB_NAME'] = 'gaming.sqlite'
 
 # Function to establish connection with the database
 
 
 def get_db_connection():
-    conn = sqlite3.connect('DB\gaming.db')
+    conn = sqlite3.connect('DB\gaming.sqlite')
     conn.row_factory = sqlite3.Row
     return conn
 
