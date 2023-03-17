@@ -1,6 +1,6 @@
 version: '2'
 services:
     web_and_db:
-        image: emanuel1q/restapi
+        image: emanuel1q/newappimage
         ports:
-              - "8000:8000"   
+              - "7090:7090"   

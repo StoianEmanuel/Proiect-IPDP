@@ -11,14 +11,14 @@ port = int(os.getenv('PORT', '7090'))
 # Function to establish connection with the database
 
 def get_db_connection():
-    conn = sqlite3.connect('../Data/gaming.sqlite')
+    conn = sqlite3.connect('./Data/gaming.sqlite')
     conn.row_factory = sqlite3.Row
     return conn
 
 # Retrieve all games from the database
 
 def get_all_games(limit=None):
-    conn = sqlite3.connect('../Data/gaming.sqlite')
+    conn = sqlite3.connect('./Data/gaming.sqlite')
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM videogames")
     # if limit is None:    cursor.execute("SELECT * FROM videogames")
@@ -72,7 +72,7 @@ def get_all_games(limit=None):
 
 
 def get_all_consoles(limit=None):
-    conn = sqlite3.connect('../Data/gaming.sqlite')
+    conn = sqlite3.connect('./Data/gaming.sqlite')
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM consoles")
     # if limit is None:   cursor.execute("SELECT * FROM consoles")
@@ -113,7 +113,7 @@ def get_all_consoles(limit=None):
 #Retrieve all mouses from database
 
 def get_all_mouses(limit=None):
-    conn = sqlite3.connect('../Data/gaming.sqlite')
+    conn = sqlite3.connect('./Data/gaming.sqlite')
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM mouses")
     # if limit is None:   cursor.execute("SELECT * FROM mouses")
