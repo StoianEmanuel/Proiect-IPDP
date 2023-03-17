@@ -1,0 +1,6 @@
+version: '2'
+services:
+    web_and_db:
+        image: emanuel1q/restapi
+        ports:
+              - "8000:8000"   

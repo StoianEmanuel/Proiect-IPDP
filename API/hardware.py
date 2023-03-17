@@ -5,22 +5,18 @@ from json import dumps
 
 app = Flask(__name__)
 
-app.config['SQLITE_DB_DIR'] = './'
-app.config['SQLITE_DB_NAME'] = 'gaming.sqlite'
-
 # Function to establish connection with the database
 
 
 def get_db_connection():
-    conn = sqlite3.connect('./gaming.sqlite')
+    conn = sqlite3.connect('./Data/gaming.sqlite')
     conn.row_factory = sqlite3.Row
     return conn
 
 # Retrieve all games from the database
 
 def get_all_games(limit=None):
-    conn = sqlite3.connect(
-        f"{app.config['SQLITE_DB_DIR']}/{app.config['SQLITE_DB_NAME']}")
+    conn = sqlite3.connect('./Data/gaming.sqlite')
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM videogames")
     # if limit is None:
@@ -298,4 +294,4 @@ def get_data():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=8000)
