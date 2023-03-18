@@ -286,10 +286,7 @@ def get_data():
         }
         return jsonify(error_response), 400
 
-#@app.route('/test')
-#def hello():
-#    return 'Hello, World!'
-
+#Method to get meta for the database
 @app.route('/get_meta')
 def get_meta():
     # Create JSON-LD document
