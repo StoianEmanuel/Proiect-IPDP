@@ -21,8 +21,6 @@ def get_all_games(limit=None):
     conn = sqlite3.connect('../Data/gaming.sqlite')
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM videogames")
-    # if limit is None:    cursor.execute("SELECT * FROM videogames")
-    # else:    cursor.execute("SELECT * FROM videogames LIMIT ?", (limit,))
     rows = cursor.fetchall()
     games = []
     l = 0
@@ -39,22 +37,22 @@ def get_all_games(limit=None):
             elif i == 4 and int(row[4]) == 0:
                 count += 1
         game = {
-            '@id': row[0],
-            'name': row[1],
-            'year_of_release': row[3],
-            'genre': row[4],
-            'publisher': row[5],
-            'na_sales': row[6],
-            'eu_sales': row[7],
-            'jp_sales': row[8],
-            'other_sales': row[9],
-            'global_sales': row[10],
-            'critic_score': row[11],
-            'critic_count': row[12],
-            'user_score': row[13],
-            'user_count': row[14],
-            'developer': row[15],
-            'rating': row[16]
+            '@Id': row[0],
+            'Name': row[1],
+            'Year of Release': row[3],
+            'Genre': row[4],
+            'Publisher': row[5],
+            'NA Sales': row[6],
+            'EU Sales': row[7],
+            'JP Sales': row[8],
+            'Other Sales': row[9],
+            'Global Sales': row[10],
+            'Critic Score': row[11],
+            'Critic Count': row[12],
+            'User Score': row[13],
+            'User Count': row[14],
+            'Developer': row[15],
+            'Rating': row[16]
         }
         if count < 4:
             if limit is None:
@@ -75,8 +73,6 @@ def get_all_consoles(limit=None):
     conn = sqlite3.connect('../Data/gaming.sqlite')
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM consoles")
-    # if limit is None:   cursor.execute("SELECT * FROM consoles")
-    # else:   cursor.execute("SELECT * FROM consoles LIMIT ?", (limit,))
     rows = cursor.fetchall()
     consoles = []
     l = 0
@@ -91,13 +87,13 @@ def get_all_consoles(limit=None):
             elif i == 4 and int(row[4]) == 0:
                 count += 1
         console = {
-            '@id': row[0],
-            'name': row[1],
-            'manufacturer': row[2],
-            'year_of_release': row[3],
-            'sales': row[4],
-            'type': row[5],
-            'number_of_exclusives': row[6]
+            '@Id': row[0],
+            'Name': row[1],
+            'Manufacturer': row[2],
+            'Year of Release': row[3],
+            'Sales': row[4],
+            'Type': row[5],
+            'Number of Exclusives': row[6]
         }
         if count < 3:
             if limit is None:
@@ -116,8 +112,6 @@ def get_all_mouses(limit=None):
     conn = sqlite3.connect('../Data/gaming.sqlite')
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM mouses")
-    # if limit is None:   cursor.execute("SELECT * FROM mouses")
-    # else:   cursor.execute("SELECT * FROM mouses LIMIT ?", (limit,))
     rows = cursor.fetchall()
     mouses = []
     l = 0
@@ -134,17 +128,17 @@ def get_all_mouses(limit=None):
             elif i == 9 and float(row[9]) > 5:
                     count += 1
         mouse = {
-            '@id': row[0],
-            'manufacturer': row[1],
-            'series': row[2],
-            'resolution': row[3],
-            'design': row[4],
-            'number of buttons': row[5],
-            'interface': row[6],
-            'weight': row[7],
-            'size': row[8],
-            'rating': row[9],
-            'link address': row[10]
+            '@Id': row[0],
+            'Manufacturer': row[1],
+            'Model': row[2],
+            'Resolution': row[3],
+            'Design': row[4],
+            'Number of Buttons': row[5],
+            'Interface': row[6],
+            'Weight': row[7],
+            'Size': row[8],
+            'Rating': row[9],
+            'Link Address': row[10]
         }
         if count < 4:
             if limit is None:
@@ -189,7 +183,7 @@ def get_data():
 
         # Create JSON-LD document
         context = {
-            "@schema": "sqlite/consoles"
+            "@schema": "SQLite/consoles"
         }
         data = {
             "@context": context,
@@ -206,7 +200,7 @@ def get_data():
         )
         return response
 
-    elif data_type == 'games':
+    elif data_type == 'video_games':
         # Check if snippet parameter is provided
         if snippet is None:
             # Return error response if snippet parameter is missing
@@ -229,7 +223,7 @@ def get_data():
 
         # Create JSON-LD document
         context = {
-            "@schema": "sqlite/games"
+            "@schema": "SQLite/games"
         }
         data = {
             "@context": context,
@@ -268,7 +262,7 @@ def get_data():
 
         # Create JSON-LD document
         context = {
-            "@schema": "sqlite/games"
+            "@schema": "SQLite/games"
         }
         data = {
             "@context": context,
@@ -295,6 +289,28 @@ def get_data():
 #@app.route('/test')
 #def hello():
 #    return 'Hello, World!'
+
+@app.route('/get_meta')
+def get_meta():
+    # Create JSON-LD document
+    context = {
+        "@schema": "SQLite"
+    }
+    data = {
+        "@context": context,
+        "consoles": "Id,Name,Manufacturer,Year of Release,Sales,Type,Number of Exclusives",
+        "video_games": "Id,Name,Year of Release,Genre,Publisher,NA Sales,EU Sales,JP Sales,Other Sales,Global Sales,Critic Score,Critic Count,User Score,User Count,Developer,Rating",
+        "mouses":"Id,Manufacturer,Model,Resolution,Design,Number of Buttons,Interface,Weight,Size,Rating,Link Address"
+    }
+    json_ld_doc = json.dumps(data)
+
+    # Return response in JSON-LD format
+    response = app.response_class(
+        response=json_ld_doc,
+        status=200,
+        mimetype='application/ld+json'
+    )
+    return response
 
 if __name__ == '__main__':
     app.run(host=host, port=port)
