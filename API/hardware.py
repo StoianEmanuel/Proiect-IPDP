@@ -42,9 +42,9 @@ def get_all_games(limit=None):
             'Year of Release': row[3],
             'Genre': row[4],
             'Publisher': row[5],
-            'NA Sales': row[6],
-            'EU Sales': row[7],
-            'JP Sales': row[8],
+            'North America Sales': row[6],
+            'Europe Sales': row[7],
+            'Japan Sales': row[8],
             'Other Sales': row[9],
             'Global Sales': row[10],
             'Critic Score': row[11],
@@ -296,7 +296,7 @@ def get_meta():
     data = {
         "@context": context,
         "consoles": "Id,Name,Manufacturer,Year of Release,Sales,Type,Number of Exclusives",
-        "video_games": "Id,Name,Year of Release,Genre,Publisher,NA Sales,EU Sales,JP Sales,Other Sales,Global Sales,Critic Score,Critic Count,User Score,User Count,Developer,Rating",
+        "video_games": "Id,Name,Year of Release,Genre,Publisher,North Sales,Europe Sales,Japan Sales,Other Sales,Global Sales,Critic Score,Critic Count,User Score,User Count,Developer,Rating",
         "mouses":"Id,Manufacturer,Model,Resolution,Design,Number of Buttons,Interface,Weight,Size,Rating,Link Address"
     }
     json_ld_doc = json.dumps(data)
