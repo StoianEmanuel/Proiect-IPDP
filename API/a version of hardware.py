@@ -118,14 +118,23 @@ def get_all_mouses(limit=None):
     for row in rows:
         count = 0
         for i in range(0, len(row)):
-            if i == 1 or i == 2 or i == 4 or i == 3 or i == 6 or i == 8 or i == 10:
+            if i == 1 or i == 2 or i == 4 or i == 3 or i == 6 or i == 8 or i == 10: # i == 11 or i == 12 or i == 13
                 if row[i].upper() == 'NULL' or row[i] == '':
                     count += 1
-            elif i == 5 and (int(row[5]) < 3 or int(row[5]) > 20):
+            elif i == 5:
+                if not row[5]:
                     count += 1
-            elif i == 7 and int(row[7]) > 250:
+                elif row[5] and int(row[5]) < 3 or int(row[5]) > 20:
                     count += 1
-            elif i == 9 and float(row[9]) > 5:
+            elif i == 7:
+                if not row[7]:
+                    count += 1
+                elif row[7] and int(row[7]) > 250:
+                    count += 1
+            elif i == 9:
+                if not row[9]:
+                    count += 1
+                elif row[9] and float(row[9]) > 5:
                     count += 1
         mouse = {
             '@Id': row[0],
@@ -136,9 +145,9 @@ def get_all_mouses(limit=None):
             'Number of Buttons': row[5],
             'Interface': row[6],
             'Weight': row[7],
-            'Size': row[8],
+            'Size': row[8], #Size (L x W x H) in mm
             'Rating': row[9],
-            'Link Address': row[10]
+            'Link Address': row[10] #'Battery Type': row[11],             'Designed for': row[12],             'Extra Functions': row[13] 
         }
         if count < 4:
             if limit is None:
@@ -152,7 +161,7 @@ def get_all_mouses(limit=None):
     return mouses
 
 
-# Define the route to retrieve all games/consoles
+# Define the route to retrieve all games/consoles/mouses
 
 @app.route('/get_data', methods=['GET'])
 def get_data():
@@ -297,7 +306,7 @@ def get_meta():
         "@context": context,
         "consoles": "Id,Name,Manufacturer,Year of Release,Sales,Type,Number of Exclusives",
         "video_games": "Id,Name,Year of Release,Genre,Publisher,North America Sales,Europe Sales,Japan Sales,Other Sales,Global Sales,Critic Score,Critic Count,User Score,User Count,Developer,Rating",
-        "mouses":"Id,Manufacturer,Model,Resolution,Design,Number of Buttons,Interface,Weight,Size,Rating,Link Address"
+        "mouses":"Id,Manufacturer,Model,Resolution,Design,Number of Buttons,Interface,Weight,Size,Rating,Link Address" #Battery Type,Designed for,Extra Functions --- Size (L x W x H) in mm
     }
     json_ld_doc = json.dumps(data)
 

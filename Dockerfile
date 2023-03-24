@@ -7,5 +7,6 @@ RUN adduser --disabled-password myuser
 USER myuser
 ENV HOST=0.0.0.0
 ENV PORT=7090
+EXPOSE 7090
 ENTRYPOINT [ "python" ]
 CMD ["hardware.py"]
