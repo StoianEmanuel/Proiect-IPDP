@@ -106,14 +106,14 @@ def get_all_consoles(limit=None):
     conn.close()
     return consoles
 
-#Retrieve all mouses from database
+#Retrieve all mice from database
 
-def get_all_mouses(limit=None):
+def get_all_mice(limit=None):
     conn = sqlite3.connect('../Data/gaming.sqlite')
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM mouses")
+    cursor.execute("SELECT * FROM mice")
     rows = cursor.fetchall()
-    mouses = []
+    mice = []
     l = 0
     for row in rows:
         count = 0
@@ -151,38 +151,42 @@ def get_all_mouses(limit=None):
         }
         if count < 4:
             if limit is None:
-                mouses.append(mouse)
+                mice.append(mouse)
             elif l < int(limit):
-                mouses.append(mouse)
+                mice.append(mouse)
                 l += 1
             elif l==int(limit):
                 break
     conn.close()
-    return mouses
+    return mice
 
 
-# Define the route to retrieve all games/consoles/mouses
+# Define the route to retrieve all games/consoles/mice
 
 @app.route('/get_data', methods=['GET'])
 def get_data():
     # Check if data_type is set to either games or consoles
     data_type = request.args.get('data_type')
     snippet = request.args.get('snippet')
+    if data_type != "mice" and data_type != "consoles" and data_type != "video_games":
+        # Return error response if data_type is not games or consoles or mice
+        error_response = {
+            'error': 'Invalid data type'
+        }
+        return jsonify(error_response), 400
+    if snippet is None:
+    # Return error response if snippet parameter is missing
+        error_response = {
+            'error': 'snippet parameter is missing'
+        }
+        return jsonify(error_response), 400
+    # Retrieve consoles based on the value of snippet parameter
+    if snippet.lower() != 'true' and snippet.lower() != 'false':
+        error_response = {
+            'error': 'snippet parameter does not exists'
+        }
+        return jsonify(error_response), 404
     if data_type == 'consoles':
-        # Check if snippet parameter is provided
-        if snippet is None:
-            # Return error response if snippet parameter is missing
-            error_response = {
-                'error': 'snippet parameter is missing'
-            }
-            return jsonify(error_response), 400
-
-        # Retrieve consoles based on the value of snippet parameter
-        if snippet.lower() != 'true' and snippet.lower() != 'false':
-            error_response = {
-                'error': 'snippet parameter does not exists'
-            }
-            return jsonify(error_response), 404
         if snippet.lower() == 'true':
             # Retrieve first 10 consoles
             consoles = get_all_consoles(limit=10)
@@ -210,19 +214,6 @@ def get_data():
         return response
 
     elif data_type == 'video_games':
-        # Check if snippet parameter is provided
-        if snippet is None:
-            # Return error response if snippet parameter is missing
-            error_response = {
-                'error': 'snippet parameter is missing'
-            }
-            return jsonify(error_response), 400
-        # Retrieve games based on the value of snippet parameter
-        if snippet.lower() != 'true' and snippet.lower() != 'false':
-            error_response = {
-                'error': 'snippet parameter does not exists'
-            }
-            return jsonify(error_response), 400
         if snippet.lower() == 'true':
             # Retrieve first 10 games
             games = get_all_games(limit=10)
@@ -249,25 +240,13 @@ def get_data():
         )
         return response
     
-    elif data_type == 'mouses':
-        # Check if snippet parameter is provided
-        if snippet is None:
-            error_response = {
-                'error': 'snippet parameter is missing'
-            }
-            return jsonify(error_response), 400
-        # Retrieve mouses based on the value of snippet parameter
-        if snippet.lower() != 'true' and snippet.lower() != 'false':
-            error_response = {
-                'error': 'snippet parameter does not exists'
-            }
-            return jsonify(error_response), 400
+    elif data_type == 'mice':
         if snippet.lower() == 'true':
-            # Retrieve first 10 mouses
-            mouses = get_all_mouses(limit=10)
+            # Retrieve first 10 mice
+            mice = get_all_mice(limit=10)
         elif snippet.lower() == 'false':
-            # Retrieve all mouses
-            mouses = get_all_mouses()
+            # Retrieve all mice
+            mice = get_all_mice()
 
         # Create JSON-LD document
         context = {
@@ -275,8 +254,8 @@ def get_data():
         }
         data = {
             "@context": context,
-            # "@type": "mouses",
-            "@list": mouses
+            # "@type": "mice",
+            "@list": mice
         }
         json_ld_doc = json.dumps(data)
 
@@ -287,13 +266,6 @@ def get_data():
             mimetype='application/ld+json'
         )
         return response
-    
-    else:
-        # Return error response if data_type is not games or consoles or mouses
-        error_response = {
-            'error': 'Invalid data type'
-        }
-        return jsonify(error_response), 400
 
 #Method to get meta for the database
 @app.route('/get_meta')
@@ -306,7 +278,7 @@ def get_meta():
         "@context": context,
         "consoles": "Id,Name,Manufacturer,Year of Release,Sales,Type,Number of Exclusives",
         "video_games": "Id,Name,Year of Release,Genre,Publisher,North America Sales,Europe Sales,Japan Sales,Other Sales,Global Sales,Critic Score,Critic Count,User Score,User Count,Developer,Rating",
-        "mouses":"Id,Manufacturer,Model,Resolution,Design,Number of Buttons,Interface,Weight,Size,Rating,Link Address" #Battery Type,Designed for,Extra Functions --- Size (L x W x H) in mm
+        "mice":"Id,Manufacturer,Model,Resolution,Design,Number of Buttons,Interface,Weight,Size,Rating,Link Address" #Battery Type,Designed for,Extra Functions --- Size (L x W x H) in mm
     }
     json_ld_doc = json.dumps(data)
 
