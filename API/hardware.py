@@ -35,8 +35,7 @@ def get_all_GPU(limit=None):
         if int(row_list[2]) < 1970:
             row_list[2] = "N/A"
             count += 1
-
-        print(row_list)    
+    
         cp = {
             'Model': row_list[0],
 	        'Manufacturer': row_list[1],
@@ -96,7 +95,7 @@ def get_all_CPU(limit=None):
         if int(row_list[4]) < 1970:
             row_list[4] = "N/A"
             count += 1
-        print(row_list)    
+        
         cp = {
             'Model': row_list[0],
 	        'Manufacturer': row_list[1],
@@ -167,7 +166,7 @@ def get_all_games(limit=None):
         if row_list[3].upper() == 'N/A' or (row_list[3] != "N/A" and not row_list[3].isnumeric()) or (row_list[3] != "N/A" and row_list[3].isnumeric() and int(row_list[3])<1970):
                 row_list[i] = "N/A"
                 count += 1
-        print(row_list[0],  count)
+        
         # Query the platform_mapping table to get the full platform name
         platform = row_list[2]
         cursor.execute(f"SELECT console_platform FROM platform_mappings WHERE game_platform = '{platform}'")

@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y sqlite3
 RUN adduser --disabled-password myuser
 USER myuser
 ENV HOST=0.0.0.0
-ENV PORT=7090
-EXPOSE 7090
+ENV PORT=8086
+EXPOSE 8086
 ENTRYPOINT [ "python" ]
 CMD ["hardware.py"]
