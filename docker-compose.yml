@@ -3,4 +3,6 @@ services:
     web_and_db:
         image: emanuel1q/app-image
         ports:
-              - "8086:8086"   
+            - "7090:7090"  
+        environment:
+            - PORT:7090
