@@ -20,7 +20,7 @@ def get_db_connection():
 
 
 def get_all_GPU(limit=None):
-    conn = sqlite3.connect("./Data/gaming.sqlite")
+    conn = sqlite3.connect("../Data/gaming.sqlite")
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM GPU")
     rows = cursor.fetchall()
@@ -93,7 +93,7 @@ def get_all_GPU(limit=None):
 
 
 def get_all_CPU(limit=None):
-    conn = sqlite3.connect("./Data/gaming.sqlite")
+    conn = sqlite3.connect("../Data/gaming.sqlite")
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM CPU")
     rows = cursor.fetchall()
@@ -162,7 +162,7 @@ def get_all_CPU(limit=None):
 
 
 def get_all_games(limit=None):
-    conn = sqlite3.connect("./Data/gaming.sqlite")
+    conn = sqlite3.connect("../Data/gaming.sqlite")
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM videogames")
     rows = cursor.fetchall()
@@ -248,7 +248,7 @@ def get_all_games(limit=None):
 
 
 def get_all_consoles(limit=None):
-    conn = sqlite3.connect("./Data/gaming.sqlite")
+    conn = sqlite3.connect("../Data/gaming.sqlite")
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM consoles")
     rows = cursor.fetchall()
@@ -300,7 +300,7 @@ def get_all_consoles(limit=None):
 
 
 def get_all_mice(limit=None):
-    conn = sqlite3.connect("./Data/gaming.sqlite")
+    conn = sqlite3.connect("../Data/gaming.sqlite")
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM mice")
     rows = cursor.fetchall()
