@@ -206,6 +206,7 @@ def get_all_games(limit=None):
 
         # Query the platform_mapping table to get the full platform name
         platform = row_list[2]
+        
         cursor.execute(
             f"SELECT console_platform FROM platform_mappings WHERE game_platform = '{platform}'"
         )
@@ -233,6 +234,7 @@ def get_all_games(limit=None):
             "Developer": row_list[15],
             "Rating": row_list[16],
         }
+        
         if count < len(row_list) * 3 / 10:
             if limit is None:
                 games.append(game)
@@ -242,7 +244,7 @@ def get_all_games(limit=None):
             elif l == int(limit):
                 break
     conn.close()
-
+    return games
 
 # Retrieve all consoles from the database
 
