@@ -395,41 +395,41 @@ def get_data():
         return jsonify(error_response), 400
 
     # Check if snippet parameter is valid
-    if snippet.lower() not in ["true", "false"]:
+    if snippet not in ["true", "false"]:
         error_response = {"error": "snippet parameter does not exist"}
         return jsonify(error_response), 404
 
     if data_type == "consoles":
         contextul = "SQLite/consoles"
-        if snippet.lower() == "true":
+        if snippet == "true":
             info = get_all_consoles(limit=20)  # Retrieve first 20 consoles
         else:
             info = get_all_consoles()  # Retrieve all consoles
 
     elif data_type == "video_games":
         contextul = "SQLite/video_games"
-        if snippet.lower() == "true":
+        if snippet == "true":
             info = get_all_games(limit=20)  # Retrieve first 20 games
         else:
             info = get_all_games()  # Retrieve all games
 
     elif data_type == "mice":
         contextul = "SQLite/mice"
-        if snippet.lower() == "true":
+        if snippet == "true":
             info = get_all_mice(limit=20)  # Retrieve first 20 mice
         else:
             info = get_all_mice()  # Retrieve all mice
 
     elif data_type == "CPU":
         contextul = "SQLite/CPU"
-        if snippet.lower() == "true":
+        if snippet == "true":
             info = get_all_CPU(limit=20)  # Retrieve first 20 cpu
         else:
             info = get_all_CPU()  # Retrieve all cpu
 
     elif data_type == "GPU":
         contextul = "SQLite/GPU"
-        if snippet.lower() == "true":
+        if snippet == "true":
             info = get_all_GPU(limit=20)  # Retrieve first 20 cpu
         else:
             info = get_all_GPU()  # Retrieve all cpu
