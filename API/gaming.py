@@ -411,28 +411,28 @@ def get_data():
 
     elif data_type == "video_games":
         contextul = "SQLite/video_games"
-        if snippet() == "true":
+        if snippet == "true":
             info = get_all_games(limit=20)  # Retrieve first 20 games
         else:
             info = get_all_games()  # Retrieve all games
 
     elif data_type == "mice":
         contextul = "SQLite/mice"
-        if snippet() == "true":
+        if snippet == "true":
             info = get_all_mice(limit=20)  # Retrieve first 20 mice
         else:
             info = get_all_mice()  # Retrieve all mice
 
     elif data_type == "CPU":
         contextul = "SQLite/CPU"
-        if snippet() == "true":
+        if snippet == "true":
             info = get_all_CPU(limit=20)  # Retrieve first 20 cpu
         else:
             info = get_all_CPU()  # Retrieve all cpu
 
     elif data_type == "GPU":
         contextul = "SQLite/GPU"
-        if snippet() == "true":
+        if snippet == "true":
             info = get_all_GPU(limit=20)  # Retrieve first 20 cpu
         else:
             info = get_all_GPU()  # Retrieve all cpu
