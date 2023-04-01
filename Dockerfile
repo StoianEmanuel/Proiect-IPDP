@@ -9,4 +9,4 @@ USER myuser
 #ENV PORT=8086
 EXPOSE 5000
 ENTRYPOINT [ "python" ]
-CMD ["hardware.py"]
+CMD ["gaming.py"]
