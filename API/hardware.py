@@ -32,22 +32,25 @@ def get_all_GPU(limit=None):
         count = 0
         for i in check_cols:
             if not row_list[i] or row_list[i].upper() == "NULL":
-                row_list[i] = ""
+                row_list[i] = None
                 count += 1
+        if not row_list[9] or row_list[9].upper() == "NULL":
+            row_list[9] = "-"
+            count += 1
         if int(row_list[2]) < 1970:
-            row_list[2] = ""
+            row_list[2] = None
             count += 1
         if int(row_list[5]) == 0:
-            row_list[5] = ""
+            row_list[5] = None
             count += 1
         if int(row_list[6]) == 0:
-            row_list[6] = ""
+            row_list[6] = None
             count += 1
         if float(row_list[24]) == 0.01:  # Not commercial
-            row_list[24] = ""
+            row_list[24] = None
             count += 1
         elif float(row_list[24]) == 0.0:  # Unknown
-            row_list[24] = ""
+            row_list[24] = None
             count += 1
         gp = {
             "Model": row_list[0],
@@ -105,22 +108,25 @@ def get_all_CPU(limit=None):
         count = 0
         for i in check_cols:
             if not row_list[i] or row_list[i].upper() == "NULL":
-                row_list[i] = ""
+                row_list[i] = None
                 count += 1
+        if not row_list[7] or row_list[7].upper() == "NULL":
+            row_list[7] = "-"
+            count += 1
         if int(row_list[4]) < 1970:
-            row_list[4] = ""
+            row_list[4] = None
             count += 1
         if int(row_list[11]) == 0:
-            row_list[11] = ""
+            row_list[11] = None
             count += 1
         if int(row_list[12]) == 0 and int(row_list[4]) < 2000:
-            row_list[12] = ""
+            row_list[12] = None
             count += 1
         if float(row_list[19]) == 0.01:  # Not commercial
-            row_list[19] = ""
+            row_list[19] = None
             count += 1
         elif float(row_list[19]) == 0.0:  # Unknown
-            row_list[19] = ""
+            row_list[19] = None
             count += 1
 
         cp = {
@@ -175,7 +181,7 @@ def get_all_games(limit=None):
         row_list = list(row)
         for i in check_cols1:
             if not row_list[i] or row_list[i].upper() == "NULL":
-                row_list[i] = ""
+                row_list[i] = None
                 count += 1
         for i in check_cols2:
             if (
@@ -183,30 +189,30 @@ def get_all_games(limit=None):
                 or row_list[i].upper() == "NULL"
                 or row_list[i].upper() == "N/A"
             ):
-                row_list[i] = ""
+                row_list[i] = None
                 count += 1
 
         if (not row_list[11] or float(row_list[11]) == 0.0) and (
             not row_list[12] or float(row_list[12]) == 0.0
         ):
-            row_list[11] = ""
-            row_list[12] = ""
+            row_list[11] = None
+            row_list[12] = None
             count += 2
 
         if (not row_list[13] or float(row_list[13]) == 0.0) and (
             not row_list[14] or float(row_list[14]) == 0.0
         ):
-            row_list[13] = ""
-            row_list[14] = ""
+            row_list[13] = None
+            row_list[14] = None
             count += 2
 
         if int(row_list[3]) < 1970:
-            row_list[3] = ""
+            row_list[3] = None
             count += 1
 
         # Query the platform_mapping table to get the full platform name
         platform = row_list[2]
-        
+
         cursor.execute(
             f"SELECT console_platform FROM platform_mappings WHERE game_platform = '{platform}'"
         )
@@ -216,7 +222,7 @@ def get_all_games(limit=None):
 
         row_list[2] = platform[0]
         game = {
-            "@Id": row_list[0],
+            "Id": row_list[0],
             "Name": row_list[1],
             "Platform": row_list[2],
             "Release Year": row_list[3],
@@ -234,7 +240,7 @@ def get_all_games(limit=None):
             "Developer": row_list[15],
             "Rating": row_list[16],
         }
-        
+
         if count < len(row_list) * 3 / 10:
             if limit is None:
                 games.append(game)
@@ -246,6 +252,7 @@ def get_all_games(limit=None):
     conn.close()
     return games
 
+
 # Retrieve all consoles from the database
 
 
@@ -256,27 +263,30 @@ def get_all_consoles(limit=None):
     rows = cursor.fetchall()
     consoles = []
     l = 0
-    check_cols = [1, 2, 5]
+    check_cols = [1, 2, 5, 8, 9, 11, 12]
     for row in rows:
         count = 0
         row_list = list(row)
         for i in check_cols:
             if not row_list[i] or row_list[i].upper() == "NULL":
-                row_list[i] = ""
+                row_list[i] = None
                 count += 1
+
+        if not row_list[10] or row_list[10].upper() == "NULL":
+            row_list[10] = "-"
 
         if int(row_list[3]) < 1970:
             count += 1
-            row_list[3] = ""
+            row_list[3] = None
         if int(row_list[4]) == 0:
             count += 1
-            row_list[4] = ""
+            row_list[4] = None
         console = {
-            "@Id": row_list[0],
+            "Id": row_list[0],
             "Name": row_list[1],
             "Manufacturer": row_list[2],
             "Release Year": row_list[3],
-            "Sales": row_list[4],
+            "Units Sold (millions)": row_list[4],
             "Type": row_list[5],
             "Number of Exclusives": row_list[6],
             "Processing Unit Type": row_list[7],
@@ -314,32 +324,32 @@ def get_all_mice(limit=None):
         row_list = list(row)
         for i in check_cols:
             if not row_list[i] or row_list[i].upper() == "NULL":
-                row_list[i] = ""
+                row_list[i] = None
                 count += 1
 
         if not row_list[5]:
             count += 1
-            row_list[5] = ""
+            row_list[5] = None
         elif row_list[5] and int(row_list[5]) < 3 or int(row_list[5]) > 20:
             count += 1
-            row_list[5] = ""
+            row_list[5] = None
 
         if not row_list[7]:
             count += 1
-            row_list[7] = ""
+            row_list[7] = None
         elif row_list[7] and int(row_list[7]) > 250:
             count += 1
-            row_list[7] = ""
+            row_list[7] = None
 
         if not row_list[9]:
             count += 1
-            row_list[9] = ""
+            row_list[9] = None
         elif row_list[9] and float(row_list[9]) > 5:
             count += 1
-            row_list[9] = ""
+            row_list[9] = None
 
         mouse = {
-            "@Id": row_list[0],
+            "Id": row_list[0],
             "Manufacturer": row_list[1],
             "Model": row_list[2],
             "Resolution": row_list[3],
