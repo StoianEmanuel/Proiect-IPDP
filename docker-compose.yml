@@ -1,8 +1,0 @@
-version: '2'
-services:
-    web_and_db:
-        image: emanuel1q/app-image
-        ports:
-            - "7090:7090"  
-        environment:
-            - PORT:7090
