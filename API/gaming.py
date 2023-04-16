@@ -7,6 +7,7 @@ app = Flask(__name__)
 # host = os.getenv('HOST', '127.0.0.1')
 # port = int(os.getenv('PORT', '8086'))
 
+
 # Function to establish connection with the database
 
 
@@ -16,369 +17,151 @@ def get_db_connection():
     return conn
 
 
-# Retrieve all GPU from the database
+# Function to return a value or the dessired value if value returned by condition is true
+def set_value_if(value, op, test_value, result):
+    if value is None:
+        return result
+    if op == "==" and value == test_value:
+        return result
+    if op == "<" and value < test_value:
+        return result
+    if op == "<=" and value <= test_value:
+        return result
+    if op == ">" and value > test_value:
+        return result
+    if op == ">=" and value >= test_value:
+        return result
+    return value
 
 
-def get_all_GPU(limit=None):
+# Function to test if value returned by a condition is true
+def test_value(value, op, test_value):
+    if value is None:
+        return True
+    if op == "==" and value == test_value:
+        return True
+    if op == "<" and value < test_value:
+        return True
+    if op == "<=" and value <= test_value:
+        return True
+    if op == ">" and value > test_value:
+        return True
+    if op == ">=" and value >= test_value:
+        return True
+    return False
+
+
+# Function used to update data from list lst and allow testing for simple or double condition
+def update(lst, filters):
+    for filter in filters:
+        poz1, op1, test_value1, result1 = filter[0:4]
+        lst[poz1] = set_value_if(lst[poz1], op1, test_value1, result1)
+          
+        if len(filter) == 9:    # double condition
+            poz2, op2, test_value2, result2, modify = filter[4:9]
+            if modify == True:      # check if the second value can be modified
+                lst[poz2] = set_value_if(lst[poz2], op2, test_value2, result2)
+
+    return lst
+
+
+# Function used to test if values from list lst fulfill contions from filters
+def filter(lst, filters):
+    count = 0
+    length = len(lst)
+
+    for filter in filters:
+        if len(filter) == 4:
+            poz1, op1, test_value1 = filter[0:3]
+            if test_value(lst[poz1], op1, test_value1) == True:
+                count += 1
+
+        elif len(filter) == 9:  # double condition
+            poz1, op1, test_value1 = filter[0:3]
+            poz2, op2, test_value2 = filter[4:7]
+            if test_value(lst[poz1], op1, test_value1) == True and test_value(lst[poz2], op2, test_value2) == True:
+                count += 2
+
+    return count < length * 0.3
+    
+
+# Retrieve all data of certain type
+def get_all(datatype= '',  limit = None, apply_update = False, apply_filter = False, filter_conditions = None, extra_updates = None):
     conn = sqlite3.connect("../Data/gaming.sqlite")
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM GPU")
+    cursor.execute(f"SELECT * FROM {datatype}")
     rows = cursor.fetchall()
-    gpu = []
-    check_cols = [0, 1, 3, 4, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+    data = []
     l = 0
     for row in rows:
         row_list = list(row)
-        count = 0
-        for i in check_cols:
-            if not row_list[i] or row_list[i].upper() == "NULL":
-                row_list[i] = None
-                count += 1
-        if not row_list[9] or row_list[9].upper() == "NULL":
-            row_list[9] = "-"
-            count += 1
-        if int(row_list[2]) < 1970:
-            row_list[2] = None
-            count += 1
-        if int(row_list[5]) == 0:
-            row_list[5] = None
-            count += 1
-        if int(row_list[6]) == 0:
-            row_list[6] = None
-            count += 1
-        if float(row_list[24]) == 0.01:  # Not commercial
-            row_list[24] = None
-            count += 1
-        elif float(row_list[24]) == 0.0:  # Unknown
-            row_list[24] = None
-            count += 1
-        gp = {
-            "Model": row_list[0],
-            "Manufacturer": row_list[1],
-            "Release Year": row_list[2],
-            "Discontinued": row_list[3],
-            "Graphics Processor": row_list[4],
-            "Transistors (millions)": row_list[5],
-            "Process Size (nm)": row_list[6],
-            "Shading Units": row_list[7],
-            "Core Base Clock": row_list[8],
-            "Core Boost Clock": row_list[9],
-            "Memory Type": row_list[10],
-            "Memory Size": row_list[11],
-            "Memory Bandwidth": row_list[12],
-            "Memory Clock Speed (Effective)": row_list[13],
-            "TDP": row_list[14],
-            "Display Outputs": row_list[15],
-            "Cooling System": row_list[16],
-            "Cooling Type": row_list[17],
-            "DirectX": row_list[18],
-            "OpenGL": row_list[19],
-            "OpenCL": row_list[20],
-            "Vulkan": row_list[21],
-            "Shader Model": row_list[22],
-            "CUDA": row_list[23],
-            "Launch Price ($)": row_list[24],
-        }
+        filter_value: bool
+        if apply_filter:
+            filter_value = filter(row_list, filter_conditions)
 
-        if count < len(row_list) * 3 / 10:
-            if limit is None:
-                gpu.append(gp)
-            elif l < int(limit):
-                gpu.append(gp)
-                l += 1
-            elif l == int(limit):
-                break
+            if not filter_value:
+                continue
+            row_list = update(row_list, filter_conditions)
+
+        else:
+            if apply_update:
+                row_list = update(row_list, filter_conditions)
+        
+        # apply extra updates
+        if extra_updates:
+            for updates in extra_updates:
+                index, op, test_value, value = updates[0:4]
+                row_list[index] = set_value_if(row_list[index], op, test_value, value)
+
+        values = {}
+        length = len(row_list)
+        for i in range(length):
+            values[cursor.description[i][0]] = row_list[i]
+
+        if limit is None:
+            data.append(values)
+        elif l < int(limit):
+            data.append(values)
+            l += 1
+        elif l == int(limit):
+            break
+    cursor.close()
     conn.close()
-    return gpu
+    return data
 
 
-# Retrieve all CPU from the database
+# Function to remove the last (key, value) pair from the dictionary
+def remove_last_property(data_list):
+    for data in data_list:
+        data.popitem()  
+    return data_list
 
 
-def get_all_CPU(limit=None):
+# Function to update data from a dictionary using querys
+def update_data_with_query(data, query_set):
     conn = sqlite3.connect("../Data/gaming.sqlite")
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM CPU")
-    rows = cursor.fetchall()
-    cpu = []
-    check_cols = [0, 1, 2, 3, 5, 6, 9, 10, 14, 15, 16, 17, 18]
-    l = 0
-    for row in rows:
-        row_list = list(row)
-        count = 0
-        for i in check_cols:
-            if not row_list[i] or row_list[i].upper() == "NULL":
-                row_list[i] = None
-                count += 1
-        if not row_list[7] or row_list[7].upper() == "NULL":
-            row_list[7] = "-"
-            count += 1
-        if int(row_list[4]) < 1970:
-            row_list[4] = None
-            count += 1
-        if int(row_list[11]) == 0:
-            row_list[11] = None
-            count += 1
-        if int(row_list[12]) == 0 and int(row_list[4]) < 2000:
-            row_list[12] = None
-            count += 1
-        if float(row_list[19]) == 0.01:  # Not commercial
-            row_list[19] = None
-            count += 1
-        elif float(row_list[19]) == 0.0:  # Unknown
-            row_list[19] = None
-            count += 1
-
-        cp = {
-            "Model": row_list[0],
-            "Manufacturer": row_list[1],
-            "Family": row_list[2],
-            "Codename": row_list[3],
-            "Release Year": row_list[4],
-            "Discontinued": row_list[5],
-            "Base Clock": row_list[6],
-            "Boost Clock": row_list[7],
-            "Sockets": row_list[8],
-            "L1 Cache Size": row_list[9],
-            "L2 Cache Size": row_list[10],
-            "Process Size (nm)": row_list[11],
-            "Number of Cores": row_list[12],
-            "Number of Threads": row_list[13],
-            "TDP": row_list[14],
-            "System Memory Type": row_list[15],
-            "System Memory Frequency": row_list[16],
-            "Instruction Set": row_list[17],
-            "Maximum Operating Temperature": row_list[18],
-            "Launch Price ($)": row_list[19],
-        }
-
-        if count < len(row_list) * 3 / 10:
-            if limit is None:
-                cpu.append(cp)
-            elif l < int(limit):
-                cpu.append(cp)
-                l += 1
-            elif l == int(limit):
-                break
+    column_table1, desired_column, table, column_table2 = query_set[0:4]
+    for element in data:
+        cursor = conn.cursor()
+        
+        # Get the current value of the specified column for the element
+        current_value = element[column_table1]
+        # Construct the SELECT query using the specified table, column and value
+        query_string = f"SELECT {desired_column} FROM {table} WHERE {column_table2} = ?"
+        cursor.execute(query_string, (current_value,))
+        query_result = cursor.fetchone()
+        if query_result:
+            # If the query returned a result, update the current value of the column for the element
+            element[column_table1] = query_result[0]
+        else:
+            # If the query did not return a result, keep the current value of the column for the element
+            element[column_table1] = current_value
+        cursor.close()
     conn.close()
-    return cpu
-
-
-# Retrieve all games from the database
-
-
-def get_all_games(limit=None):
-    conn = sqlite3.connect("../Data/gaming.sqlite")
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM videogames")
-    rows = cursor.fetchall()
-    games = []
-    l = 0
-    check_cols1 = [1, 2, 4, 5]
-    check_cols2 = [15, 16]
-    for row in rows:
-        count = 0
-        row_list = list(row)
-        for i in check_cols1:
-            if not row_list[i] or row_list[i].upper() == "NULL":
-                row_list[i] = None
-                count += 1
-        for i in check_cols2:
-            if (
-                not row_list[i]
-                or row_list[i].upper() == "NULL"
-                or row_list[i].upper() == "N/A"
-            ):
-                row_list[i] = None
-                count += 1
-
-        if (not row_list[11] or float(row_list[11]) == 0.0) and (
-            not row_list[12] or float(row_list[12]) == 0.0
-        ):
-            row_list[11] = None
-            row_list[12] = None
-            count += 2
-
-        if (not row_list[13] or float(row_list[13]) == 0.0) and (
-            not row_list[14] or float(row_list[14]) == 0.0
-        ):
-            row_list[13] = None
-            row_list[14] = None
-            count += 2
-
-        if int(row_list[3]) < 1970:
-            row_list[3] = None
-            count += 1
-
-        # Query the platform_mapping table to get the full platform name
-        platform = row_list[2]
-
-        cursor.execute(
-            f"SELECT console_platform FROM platform_mappings WHERE game_platform = '{platform}'"
-        )
-        resultat = cursor.fetchone()
-        if resultat:
-            platform = list(resultat)
-
-        row_list[2] = platform[0]
-        game = {
-            "Id": row_list[0],
-            "Name": row_list[1],
-            "Platform": row_list[2],
-            "Release Year": row_list[3],
-            "Genre": row_list[4],
-            "Publisher": row_list[5],
-            "North America Sales": row_list[6],
-            "Europe Sales": row_list[7],
-            "Japan Sales": row_list[8],
-            "Other Sales": row_list[9],
-            "Global Sales": row_list[10],
-            "Critic Score": row_list[11],
-            "Critic Count": row_list[12],
-            "User Score": row_list[13],
-            "User Count": row_list[14],
-            "Developer": row_list[15],
-            "Rating": row_list[16],
-        }
-
-        if count < len(row_list) * 3 / 10:
-            if limit is None:
-                games.append(game)
-            elif l < int(limit):
-                games.append(game)
-                l += 1
-            elif l == int(limit):
-                break
-    conn.close()
-    return games
-
-
-# Retrieve all consoles from the database
-
-
-def get_all_consoles(limit=None):
-    conn = sqlite3.connect("../Data/gaming.sqlite")
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM consoles")
-    rows = cursor.fetchall()
-    consoles = []
-    l = 0
-    check_cols = [1, 2, 5, 8, 9, 11, 12]
-    for row in rows:
-        count = 0
-        row_list = list(row)
-        for i in check_cols:
-            if not row_list[i] or row_list[i].upper() == "NULL":
-                row_list[i] = None
-                count += 1
-
-        if not row_list[10] or row_list[10].upper() == "NULL":
-            row_list[10] = "-"
-
-        if int(row_list[3]) < 1970:
-            count += 1
-            row_list[3] = None
-        if int(row_list[4]) == 0:
-            count += 1
-            row_list[4] = None
-        console = {
-            "Id": row_list[0],
-            "Name": row_list[1],
-            "Manufacturer": row_list[2],
-            "Release Year": row_list[3],
-            "Units Sold (millions)": row_list[4],
-            "Type": row_list[5],
-            "Number of Exclusives": row_list[6],
-            "Processing Unit Type": row_list[7],
-            "CPU Equivalent": row_list[8],
-            "CPU Frequency": row_list[9],
-            "GPU Equivalent": row_list[10],
-            "RAM Size": row_list[11],
-            "RAM Frequency": row_list[12],
-        }
-        if count < len(row_list) * 3 / 10:
-            if limit is None:
-                consoles.append(console)
-            elif l < int(limit):
-                consoles.append(console)
-                l += 1
-            elif l == int(limit):
-                break
-    conn.close()
-    return consoles
-
-
-# Retrieve all mice from database
-
-
-def get_all_mice(limit=None):
-    conn = sqlite3.connect("../Data/gaming.sqlite")
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM mice")
-    rows = cursor.fetchall()
-    mice = []
-    l = 0
-    check_cols = [1, 2, 3, 4, 6, 8, 10, 11, 12, 13]
-    for row in rows:
-        count = 0
-        row_list = list(row)
-        for i in check_cols:
-            if not row_list[i] or row_list[i].upper() == "NULL":
-                row_list[i] = None
-                count += 1
-
-        if not row_list[5]:
-            count += 1
-            row_list[5] = None
-        elif row_list[5] and int(row_list[5]) < 3 or int(row_list[5]) > 20:
-            count += 1
-            row_list[5] = None
-
-        if not row_list[7]:
-            count += 1
-            row_list[7] = None
-        elif row_list[7] and int(row_list[7]) > 250:
-            count += 1
-            row_list[7] = None
-
-        if not row_list[9]:
-            count += 1
-            row_list[9] = None
-        elif row_list[9] and float(row_list[9]) > 5:
-            count += 1
-            row_list[9] = None
-
-        mouse = {
-            "Id": row_list[0],
-            "Manufacturer": row_list[1],
-            "Model": row_list[2],
-            "Resolution": row_list[3],
-            "Design": row_list[4],
-            "Number of Buttons": row_list[5],
-            "Interface": row_list[6],
-            "Weight": row_list[7],
-            "Size (L x W x H)": row_list[8],  # Size (L x W x H) in mm
-            "Rating": row_list[9],
-            "Link Address": row_list[10],
-            "Battery Type": row_list[11],
-            "Designed for": row_list[12],
-            "Extra Functions": row_list[13],
-        }
-        if count < len(row_list) * 3 / 10:
-            if limit is None:
-                mice.append(mouse)
-            elif l < int(limit):
-                mice.append(mouse)
-                l += 1
-            elif l == int(limit):
-                break
-    conn.close()
-    return mice
+    return data
 
 
 # Define the route to retrieve all games/consoles/mice/CPU
-
-
 @app.route("/get_data", methods=["GET"])
 def get_data():
     # Check if data_type is set to either games or consoles
@@ -404,38 +187,129 @@ def get_data():
 
     if data_type == "consoles":
         contextul = "SQLite/consoles"
+        filter_conditions = [      # define conditions
+            [	1	, "==",	"NULL",	None 	],
+            [	2	, "==",	"NULL",	None 	],
+            [	3	, "<" ,	1970  ,	None 	],
+            [	5	, "==",	"NULL", None    ],
+            [	8	, "==",	"NULL",	None	],
+            [	9	, "==",	"NULL",	None 	],
+            [	11	, "==",	"NULL",	None 	],
+            [	12	, "==",	"NULL",	None    ]
+        ]
+
+        extra_updates = [         # updates that does not count for integrity conditions
+            [	10	, "==" , "NULL" , None ] 
+        ]
         if snippet == "true":
-            info = get_all_consoles(limit=20)  # Retrieve first 20 consoles
+            info = get_all(datatype= "consoles",  limit = 20, apply_update = True, apply_filter = True, filter_conditions = filter_conditions, extra_updates = extra_updates)  # Retrieve first 20 consoles
         else:
-            info = get_all_consoles()  # Retrieve all consoles
+            info = get_all(datatype= "consoles",  limit = None, apply_update = True, apply_filter = True, filter_conditions = filter_conditions, extra_updates = extra_updates)  # Retrieve all consoles
+        info = remove_last_property(info)
 
     elif data_type == "video_games":
         contextul = "SQLite/video_games"
+        filter_conditions = [      # define conditions
+            [	1	, "==",	"NULL",	None 	],
+            [	2	, "==",	"NULL",	None 	],
+            [	3	, "<" , 1970 ,	None 	],
+            [	4	, "==", "NULL",	None 	],
+            [	5	, "==", "NULL",	None 	],
+            [	11	, "==",	0.0   ,	None    ,  12,  "==", 0.0 , None, True],
+            [	13	, "==", 0.0   ,	None 	,  14,  "==", 0.0 , None, True],
+            [	15	, "==",	"NULL",	None    ],
+            [	16	, "==",	"NULL",	None 	]
+        ]
         if snippet == "true":
-            info = get_all_games(limit=20)  # Retrieve first 20 games
+            info = get_all(datatype= "videogames",  limit = 20, apply_update = True, apply_filter = True, filter_conditions = filter_conditions)  # Retrieve first 20 mice
         else:
-            info = get_all_games()  # Retrieve all games
+            info = get_all(datatype= "videogames",  limit = None, apply_update = True, apply_filter = True, filter_conditions = filter_conditions)  # Retrieve all mice
+
+        query_set = ['Platform', 'console_platform', 'platform_mappings', 'game_platform']
+        info = update_data_with_query(info, query_set)
 
     elif data_type == "mice":
         contextul = "SQLite/mice"
+        filter_conditions = [      # define conditions
+            [	1	, "==",	"NULL",	None 	],
+            [	2	, "==",	"NULL",	None 	],
+            [	3	, "==",	"NULL",	None 	],
+            [	4	, "==", "NULL",	None 	],
+            [	5	, "<" ,	3     ,	None    ,  5,  ">" , 20 , None, True],
+            [	6	, "==",	0     ,	None 	],
+            [	7	, ">" ,	250   ,	None 	,  7,  "==" , 0 , None, True],
+            [	8	, "==",	"NULL",	None	],
+            [	9	, ">" ,	5     ,	None 	],
+            [	10	, "==",	"NULL",	None 	],
+            [	11	, "==",	"NULL",	None 	],
+            [	12	, "==",	"NULL",	None    ],
+            [	13	, "==",	"NULL",	None 	]
+        ]
         if snippet == "true":
-            info = get_all_mice(limit=20)  # Retrieve first 20 mice
+            info = get_all(datatype= "mice",  limit = 20, apply_update = True, apply_filter = True, filter_conditions = filter_conditions)  # Retrieve first 20 mice
         else:
-            info = get_all_mice()  # Retrieve all mice
+            info = get_all(datatype= "mice",  limit = None, apply_update = True, apply_filter = True, filter_conditions = filter_conditions)  # Retrieve all mice
+
 
     elif data_type == "CPU":
         contextul = "SQLite/CPU"
+        filter_conditions = [      # define conditions
+            [	0	, "==",	"NULL",	None 	],
+            [	1	, "==",	"NULL",	None 	],
+            [	2	, "==",	"NULL",	None 	],
+            [	3	, "==",	"NULL",	None 	],
+            [	4	, "<" ,	1970  ,	None 	],
+            [	5	, "==",	0     ,	None 	],
+            [	6	, "==",	0     ,	None 	],
+            [	7	, "==",	"NULL",	"-" 	],
+            [	9	, "==",	"NULL",	"-" 	],
+            [	10	, "==",	"NULL",	None 	],
+            [	11	, "==",	0     ,	None 	],
+            [	12	, "==",	0     ,	None    , 4 , "<" ,	2000 ,	None ,  False	],
+            [	14	, "==",	"NULL",	None 	],
+            [	15	, "==",	"NULL",	None 	],
+            [	16	, "==",	"NULL",	None 	],
+            [	17	, "==",	"NULL",	None 	],
+            [	18	, "==",	"NULL",	None 	],
+            [	19	, "==",	0     ,	None 	]
+        ]
         if snippet == "true":
-            info = get_all_CPU(limit=20)  # Retrieve first 20 cpu
+            info = get_all(datatype= "CPU",  limit = 20, apply_update = True, apply_filter = True, filter_conditions = filter_conditions)  # Retrieve first 20 CPU
         else:
-            info = get_all_CPU()  # Retrieve all cpu
+            info = get_all(datatype= "CPU",  limit = None, apply_update = True, apply_filter = True, filter_conditions = filter_conditions)  # Retrieve all CPU
 
     elif data_type == "GPU":
         contextul = "SQLite/GPU"
+        filter_conditions = [
+            [	0	, "==",	"NULL",	None 	],
+            [	1	, "==",	"NULL",	None 	],
+            [	2	, "<" ,	1970  ,	None 	],
+            [	3	, "==",	"NULL",	None 	],
+            [	4	, "==",	"NULL",	None 	],
+            [	5	, "==",	0     ,	None 	],
+            [	6	, "==",	0     ,	None 	],
+            [	8	, "==",	"NULL",	None 	],
+            [	9	, "==",	"NULL",	"-" 	],
+            [	10	, "==",	"NULL",	None 	],
+            [	11	, "==",	"NULL",	None 	],
+            [	12	, "==",	"NULL",	None 	],
+            [	13	, "==",	"NULL",	None 	],
+            [	14	, "==",	"NULL",	None 	],
+            [	15	, "==",	"NULL",	None 	],
+            [	16	, "==",	"NULL",	None 	],
+            [	17	, "==",	"NULL",	None 	],
+            [	18	, "==",	"NULL",	None 	],
+            [	19	, "==",	"NULL",	None 	],
+            [	20	, "==",	"NULL",	None 	],
+            [	21	, "==",	"NULL",	None 	],
+            [	22	, "==",	"NULL",	None 	],
+            [	23	, "==",	"NULL",	None 	],
+            [	24	, "==",	0     ,	None 	]
+        ]
         if snippet == "true":
-            info = get_all_GPU(limit=20)  # Retrieve first 20 cpu
+            info = get_all(datatype= "GPU",  limit = 20, apply_update = True, apply_filter = True, filter_conditions = filter_conditions)  # Retrieve first 20 GPU
         else:
-            info = get_all_GPU()  # Retrieve all cpu
+            info = get_all(datatype= "GPU",  limit = None, apply_update = True, apply_filter = True, filter_conditions = filter_conditions)  # Retrieve all GPU
 
     context = {"@schema": contextul}
     data = {"@context": context, "@list": info}
@@ -459,6 +333,7 @@ def get_column_data(table_name):
     col_names = [result[1] for result in results]
     # Join the column names with commas and print the resulting string
     meta = ",".join(col_names)
+    conn.close()
     return meta
 
 
@@ -477,13 +352,16 @@ def get_meta():
     meta4 = get_column_data(table_name4)
     meta5 = get_column_data(table_name5)
 
+    last_comma_index = meta2.rfind(",")  # find index of last comma
+    meta2 = meta2[:last_comma_index]  # slice string to get left part to remove the price 
+
     # Create JSON-LD document
     context = {"@schema": "SQLite"}
     data = {
         "@context": context,
         "video_games": meta1,
         "consoles": meta2,
-        "mice": meta3,  # "mice":"Id,Manufacturer,Model,Resolution,Design,Number of Buttons,Interface,Weight,Size,Rating,Link Address", #Battery Type,Designed for,Extra Functions --- Size (L x W x H) in mm
+        "mice": meta3,
         "CPU": meta4,
         "GPU": meta5,
     }
