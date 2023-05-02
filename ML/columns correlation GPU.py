@@ -1,37 +1,12 @@
-import pandas as pd
 import numpy as np
-from scipy.stats import pearsonr
-import sqlite3
-import re
 from itertools import chain
+from utils import get_data, get_correlation, get_numeric_value
 
-def extract_number_with_reg_expr(string):
-    numeric_part = re.findall(r"\d+\.+\d+", string)
-    if numeric_part:
-        number = float(numeric_part[0])
-    else:
-        number = -1
-    return number
-
-# Functie care returneaza valoarea numerica a fiecarui element din lista
-def get_numeric_value(element):
-    letters = ['a', 'b', 'c']
-    if element.endswith(" Ultimate"):
-        return float(element.split(" ")[0]) + 1
-    if element[-1] in letters:
-        return extract_number_with_reg_expr(element) + (ord(element[-1]) - ord('a'))/10
-    if element.startswith("N/A"):
-        return -1
-    if element.startswith("ES"):                   # daca elementul incepe cu "ES", luam partea numerica de dupa "ES "
-        return float(element.split(" ")[1]) - 0.1  # scadem 0.1 pentru a plasa versiunile ES inaintea celor non-ES
-    else:
-        return float(element)
 
 # Return dataframe from database; depends on keys
 def get_df_from_db(db_path, db_query, main_key, other_keys = None, API_v2_col = None, API_v1_col = None):
-
-    connection = sqlite3.connect(db_path)       # Get data from db
-    df = pd.read_sql_query(db_query, connection)
+    # Get data from db
+    df = get_data(db_path = db_path, db_query = db_query)
 
     keys = other_keys + API_v1_col + API_v2_col + main_key # Format data
 
@@ -57,25 +32,19 @@ def get_df_from_db(db_path, db_query, main_key, other_keys = None, API_v2_col = 
                 priority = {value: index for index, value in enumerate(ord_list)}   # Define the priority (values) for each unique values
                 df[column] = df[column].map(priority)                       # Change the original values from df[column] into priority values
                 continue                                                    # Skip the code below
-        
+
+    for i in range(len(df['Core Boost Clock'])):     # if Boost Clock is null it will take value from Base Clock
+        if df['Core Boost Clock'][i] == 0:
+            df['Core Boost Clock'][i] = df['Core Base Clock'][i]
+
+    df['TDP'] = df['TDP'].replace(0, float('nan'))   # Replace 0 with NaN
+    mean_values = df['TDP'].mean(skipna=True)        # Mean value of TDP without values NaN
+    df['TDP'] = df['TDP'].fillna(mean_values)        # Replace NaN cu mean value
+
     # Remove unused columns from dataframe
     coloane_de_sters = list(set(df.columns) - set(keys))
     df = df.drop(columns=coloane_de_sters)    
     return df
-
-# Calculate corelation
-def get_corelation(df, main_key, keys):
-
-    # Find coeficients for corelation
-    correlation_coefficients = []
-    for key in keys:
-        coefficient, _ = pearsonr(df[main_key].values.flatten(), df[key].values.flatten())
-        correlation_coefficients.append(coefficient)
-
-    # Return values set for corelation formated
-    correlation_df = pd.DataFrame({'Feature': keys, 'Correlation Coefficient': correlation_coefficients})
-    correlation_df = correlation_df.sort_values(by='Correlation Coefficient', ascending=False)
-    return correlation_df
 
 
 main_key= ['Memory Size']
@@ -89,4 +58,4 @@ df = get_df_from_db(db_path = db_path,                db_query = db_query,
                API_v1_col = API_v1_col,               API_v2_col = API_v2_col  
                ) 
 
-print(main_key[0]+':\n',get_corelation(df, main_key = main_key[0], keys = other_keys + API_v2_col + API_v1_col))
+print(main_key[0]+':\n', get_correlation(df, main_key = main_key[0], keys = other_keys + API_v2_col + API_v1_col))

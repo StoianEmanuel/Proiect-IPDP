@@ -1,16 +1,9 @@
-import pandas as pd
 import numpy as np
 from sklearn.linear_model import LinearRegression
-import sqlite3
 from itertools import chain
 from sklearn.preprocessing import PolynomialFeatures
 from joblib import dump
-
-# Read data from db
-def get_data(db_path, db_query):
-    connection = sqlite3.connect(db_path)
-    df = pd.read_sql_query(db_query, connection)
-    return df
+from utils import get_data
 
 # Change content of columns of dataframe where the values are string
 def update_values(df, Transform_col):
