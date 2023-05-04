@@ -7,6 +7,7 @@ import pandas as pd
 from scipy.stats import pearsonr
 from sklearn.preprocessing import MinMaxScaler
 
+
 # Read data from db as dataframe
 def get_data(db_path, db_query):
     connection = sqlite3.connect(db_path)
@@ -51,6 +52,7 @@ def get_correlation(df, main_key, keys):
     correlation_df = pd.DataFrame({'Feature': keys, 'Correlation Coefficient': correlation_coefficients})
     correlation_df = correlation_df.sort_values(by='Correlation Coefficient', ascending=False)
     return correlation_df
+
 
 # Get unit from string value
 def get_size_unit(df: pd.DataFrame):
@@ -162,6 +164,7 @@ def add_boost(df: pd.DataFrame, modify_column: str):
     return df[modify_column]
 
 
+# Fill with mean value where value is missing
 def fill_with_mean(df: pd.DataFrame, column: str):
     copy = df[column].replace(0, float('nan'))   # Replace 0 with NaN
     mean_values = copy.mean(skipna=True)        # Mean value of TDP without values NaN
@@ -193,6 +196,7 @@ def cpu_score_row(row, columns_rev):
         else:
             score += math.log10(row[column] + 10)
     return score
+
 
 def cpu_score_df(df, columns_max, columns_min):
     score = 0
