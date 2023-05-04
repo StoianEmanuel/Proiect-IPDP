@@ -20,7 +20,8 @@ poly_prediction = poly_regressor.predict(X_release_year_poly)
 liniar_prediction = np.exp(liniar_prediction)
 poly_prediction = np.exp(poly_prediction)
 
-liniar_prediction[:, 0:-1] = liniar_prediction[:, 0:-1].astype(int)
+liniar_prediction[:, 0:3] = liniar_prediction[:, 0:3].astype(int)
+liniar_prediction[:, -1] = liniar_prediction[:, -1].astype(int)
 poly_prediction[:, 0] = poly_prediction[:, 0].astype(int)
 
 concatenated_matrix = np.concatenate((X_release_year, liniar_prediction, poly_prediction), axis=1)

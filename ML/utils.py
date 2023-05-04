@@ -1,7 +1,11 @@
+from itertools import chain
+import math
 import re
 import sqlite3
+import numpy as np
 import pandas as pd
 from scipy.stats import pearsonr
+from sklearn.preprocessing import MinMaxScaler
 
 # Read data from db as dataframe
 def get_data(db_path, db_query):
@@ -10,7 +14,7 @@ def get_data(db_path, db_query):
     return df
 
 
-# Functie care extrage 
+# Extract number with regular expression
 def extract_number_with_reg_expr(string):
     numeric_part = re.findall(r"\d+\.+\d+", string)
     if numeric_part:
@@ -47,3 +51,205 @@ def get_correlation(df, main_key, keys):
     correlation_df = pd.DataFrame({'Feature': keys, 'Correlation Coefficient': correlation_coefficients})
     correlation_df = correlation_df.sort_values(by='Correlation Coefficient', ascending=False)
     return correlation_df
+
+# Get unit from string value
+def get_size_unit(df: pd.DataFrame):
+    size_unit = []
+    pattern = re.compile('[a-zA-Z]+')
+    for element in df.values:
+        t = pattern.findall(element)
+        size_unit.append(t)
+    return size_unit
+
+
+# Transform MHz or Hz into GHz values
+def convert_unit_to_ghz(size_unit, numeric_value):
+    if size_unit == 'MHz':
+        numeric_value /= 1000
+    elif size_unit == 'Hz':
+        numeric_value /= 1000**2
+    return numeric_value
+
+
+# Transform MB or KB or B into GB values
+def convert_unit_to_gb(size_unit, numeric_value):
+    if size_unit == 'MB':
+        numeric_value /= 1024
+    elif size_unit == 'KB':
+        numeric_value /= 1024**2
+    elif size_unit == 'B':
+        numeric_value /= 1024**3
+    return numeric_value
+
+
+# Extract float from str
+def test_and_update(column: str, values):
+    size_units = get_size_unit(values)                                                      # Extract the unit part
+    numeric_values = values.str.extract('(\d+\.\d+|\d+\.\d*|\.\d+|\d+)').astype(float)[0]   # Extract the numeric part
+
+    if 'CLOCK' in column.upper() and 'MEMORY' not in column.upper():
+        converted_values = []
+        for i in range(len(size_units)):
+            if size_units[i]:  # check if size_units[i] contains elements
+                converted_values.append(convert_unit_to_ghz(size_units[i][0], numeric_values[i]))
+            else:
+                converted_values.append(numeric_values[i])
+        numeric_values = pd.DataFrame(converted_values, columns=[column])
+    elif 'SIZE' in column.upper():
+        converted_values = []
+        for i in range(len(size_units)):
+            if size_units[i]:  # check if size_units[i] contains elements
+                converted_values.append(convert_unit_to_gb(size_units[i][0], numeric_values[i]))
+            else:
+                converted_values.append(numeric_values[i])
+        numeric_values = pd.DataFrame(converted_values, columns=[column])
+
+    values = numeric_values  # Transform string into numbers
+    return values
+
+
+# Return dataframe from database; depends on keys
+def get_df_for_gpu(db_path, db_query, keys = None, API_v2_col = None, API_v1_col = None):
+    # Get data from db
+    df = get_data(db_path = db_path, db_query = db_query)
+
+    all_keys = keys                             # Format data
+    if API_v2_col != None:
+        all_keys = all_keys + API_v2_col
+    if API_v2_col != None:
+        all_keys = all_keys + API_v1_col
+
+    for column in chain(all_keys):
+        df[column].fillna("0", inplace=True)    # Fill empty values ("") with 0
+        if df[column].dtype == object:
+            if any(column in cases for cases in (keys)):
+                for column in chain(keys):
+                    df[column].fillna("0", inplace=True)    # Fill empty values ("") with 0
+                    if df[column].dtype == object:
+                        df[column] = test_and_update(column, df[column])
+
+            elif column in API_v2_col:
+                df[column] = df[column].str.replace('N/A', '0', regex=True)   # Replace "N/A" with "0"
+                df[column] = df[column].str.extract('(\d+\.\d+|\d+\.\d*|\.\d+|\d+)').astype(float)   # Extract the numeric part
+
+            elif column in API_v1_col:
+                unique_values = df[column].unique()                         # List of unique values in DataFrame df for DirectX and OpenCL
+                ord_list = sorted(unique_values, key=get_numeric_value)     # List of unique values in DataFrame df for DirectX and OpenCL sorted
+                priority = {value: index for index, value in enumerate(ord_list)}   # Define the priority (values) for each unique values
+                df[column] = df[column].map(priority)                       # Change the original values from df[column] into priority values
+                continue                                                    # Skip the code below
+
+    df['Core Boost Clock'] = add_boost(df, 'Core Boost Clock')
+    df['TDP'] = fill_with_mean(df, 'TDP')
+    return df
+
+
+# Remove unused columns from dataframe
+def remove_columns(df, keys):
+    coloane_de_sters = list(set(df.columns) - set(keys))
+    df = df.drop(columns=coloane_de_sters) 
+    return df
+
+
+# Add values for '*Boost Clock' column in dataframe where value is missing
+def add_boost(df: pd.DataFrame, modify_column: str):
+    if 'BOOST CLOCK' in modify_column.upper():
+        column = modify_column.replace('Boost', 'Base')
+        if column in df.columns and not df[column].empty:
+            for i in range(len(df[modify_column])):     # if Boost Clock is null it will take value from Base Clock
+                if df[modify_column][i] == 0:
+                    df[modify_column][i] = df[column][i]
+    return df[modify_column]
+
+
+def fill_with_mean(df: pd.DataFrame, column: str):
+    copy = df[column].replace(0, float('nan'))   # Replace 0 with NaN
+    mean_values = copy.mean(skipna=True)        # Mean value of TDP without values NaN
+    copy = copy.fillna(mean_values)        # Replace NaN cu mean value
+    return copy
+
+
+# Return dataframe from database; depends on keys
+def get_df_for_cpu(db_path, db_query, keys = None):
+    # Get data from db
+    df = get_data(db_path = db_path, db_query = db_query)
+
+    for column in chain(keys):
+        df[column].fillna("0", inplace=True)    # Fill empty values ("") with 0
+        if df[column].dtype == object:
+            df[column] = test_and_update(column, df[column])
+
+    df['Boost Clock'] = add_boost(df, 'Boost Clock')
+    df['TDP'] = fill_with_mean(df, 'TDP')
+    df['Maximum Operating Temperature'] = fill_with_mean(df, 'Maximum Operating Temperature')
+    return df
+
+
+def cpu_score_row(row, columns_rev):
+    score = 0
+    for column in row.index:
+        if column in columns_rev:
+            score += math.log10(1/row[column] + 10)
+        else:
+            score += math.log10(row[column] + 10)
+    return score
+
+def cpu_score_df(df, columns_max, columns_min):
+    score = 0
+    for column in df.columns:
+        if column in columns_max:
+            score = score + math.log10(1/df[column] + 10)
+        elif column in columns_min:
+            score = score + math.log10(1/df[column] + 10)
+        else:
+            score = score + math.log10(df[column] + 10)
+        
+    return score
+
+
+def get_scores_cpu(df):
+    # Initialize a MinMaxScaler
+    scaler = MinMaxScaler()
+
+    # Columns to be scaled
+    cols_to_scale = ['Base Clock', 'Boost Clock', 'L1 Cache Size', 'L2 Cache Size', 'Number of Cores', 'Number of Threads', 'System Memory Frequency', 'Launch Price ($)']
+    cols_to_scale_rev = ['Process Size (nm)', 'TDP', 'Maximum Operating Temperature']
+    # Scale data and keep columns name
+    scaled_values = scaler.fit_transform(df[cols_to_scale])
+    column_names = df[cols_to_scale].columns.tolist()
+
+    # Build new dataframe with the new data and name
+    df_scaled = pd.DataFrame(scaled_values, columns=column_names)
+    for column in cols_to_scale:
+        df_scaled[column] = np.log10(df[column] + 10)
+    for column in cols_to_scale_rev:
+        df_scaled[column] = np.log10(1/df[column] + 10)
+    print(df_scaled.product(axis=1).values, '\n\n') # de incercat returnarea celor 2 coloane pentru a obtine scorurile
+    print(df_scaled.sum(axis=1).values) # voi realiza predictiile
+    #df_scaled['Score'] = df_scaled.product(axis=1)
+    #print('\n\n', df_scaled['Score'], df_scaled.values)
+
+
+def get_scores_gpu(df):
+    # Initialize a MinMaxScaler
+    scaler = MinMaxScaler()
+
+    # Columns to be scaled
+    cols_to_scale = ['Transistors (millions)', 'Shading Units', 'Core Base Clock', 'Core Boost Clock', 'Memory Size', 'Memeory Bandwidth', 'Memory Speed (Effective)', 'Launch Price ($)']
+    max_cols = ['Process Size (nm)', 'TDP']
+
+    # Scale data and keep columns name
+    scaled_values = scaler.fit_transform(df[cols_to_scale])
+    column_names = df[cols_to_scale].columns.tolist()
+
+    # Build new dataframe with the new data and name
+    df_scaled = pd.DataFrame(scaled_values, columns=column_names)
+    for column in cols_to_scale:
+        df_scaled[column] = np.log10(df[column] + 10)
+    for column in max_cols:
+        max = df[column].max()
+        df_scaled[column] = np.log10(max - df[column] + 10)
+    print(df_scaled.product(axis=1).values, '\n\n') # de incercat returnarea celor 2 coloane pentru a obtine scorurile
+    print(df_scaled.sum(axis=1).values) # voi realiza predictiile
+    #df_scaled['Score'] = df_scaled.product(axis=1)
+    #print('\n\n', df_scaled['Score'], df_scaled.values)
