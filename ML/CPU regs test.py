@@ -1,29 +1,21 @@
-from sklearn.preprocessing import PolynomialFeatures
 from joblib import load
-import numpy as np
+import pandas as pd
+from utils import predicition
 
 # Load linear regression model and polynomial regression model
-liniar_regressor = load('./ML/CPU_liniar_regressor.joblib')
+linear_regressor = load('./ML/CPU_linear_regressor.joblib')
 poly_regressor = load('./ML/CPU_poly_regressor.joblib')
+year = [1990, 1996, 1999, 2000, 2001, 2002, 2005, 2009, 2010, 2012, 2015, 2020, 2021, 2023, 2025, 2027, 2030] # set used for predictions
+columns = ['Release Year', 'Process Size (nm)', 'TDP', 'Base Clock', 'Boost Clock', 'L1 Cache Size', 'L2 Cache Size', 'Number of Cores', 'Number of Threads', 'System Memory Frequency', 'Launch Price ($)']
+lin_int_col  = [0, 1]
+poly_int_col = [0, 1, 2, 3]
 
-release_year = [1990, 1996, 1999, 2000, 2001, 2002, 2005, 2009, 2010, 2012, 2015, 2020, 2021, 2023, 2025, 2027, 2030] # set used for predictions
-X_release_year = np.array(release_year).reshape(-1, 1)
+df = predicition(release_year = year, linear_regressor = linear_regressor, poly_regressor = poly_regressor, degree = 2, columns = columns, lin_int_col = lin_int_col, poly_int_col = poly_int_col)
+print("Predictii (dataframe):\n' Release Year | Process Size (nm) | TDP (W) | Base Clock (GHz) | Boost Clock (GHz) | L1 Cache Size (GB) | L2 Cache Size (GB) | Number of Cores | Number of Threads | System Memory Frequency (MHz) | Launch Price ($)\n")
 
-# Generare caracteristici polinomiale pentru valorile de release_year
-poly_features = PolynomialFeatures(degree = 2)
-X_release_year_poly = poly_features.fit_transform(X_release_year)
-
-# Predictions
-liniar_prediction = liniar_regressor.predict(X_release_year)
-poly_prediction = poly_regressor.predict(X_release_year_poly)
-
-liniar_prediction = np.exp(liniar_prediction)
-poly_prediction = np.exp(poly_prediction)
-
-#liniar_prediction[:, 0:-1] = liniar_prediction[:, 2:-1].astype(int)
-poly_prediction[:, 0] = poly_prediction[:, 0].astype(int)
-
-concatenated_matrix = np.concatenate((X_release_year, liniar_prediction, poly_prediction), axis=1)
-
-np.set_printoptions(precision=4, suppress=True) # Folosita pentru a imbunatati afisarea in consola
-print(concatenated_matrix)
+# Parcurgem coloanele în grupuri de câte 7 și afișăm fiecare grup
+for i in range(0, df.shape[1], 3):
+    pd.options.display.max_rows = None
+    print(df.iloc[:, i:i+3])
+# Exportăm DataFrame-ul în fișierul CSV cu separatori tab și virgulă
+#df.to_csv('rezultat.csv', sep=',', index=False)

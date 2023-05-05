@@ -5,7 +5,7 @@ import sqlite3
 import numpy as np
 import pandas as pd
 from scipy.stats import pearsonr
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, PolynomialFeatures
 
 
 # Read data from db as dataframe
@@ -257,3 +257,38 @@ def get_scores_gpu(df):
     print(df_scaled.sum(axis=1).values) # voi realiza predictiile
     #df_scaled['Score'] = df_scaled.product(axis=1)
     #print('\n\n', df_scaled['Score'], df_scaled.values)
+
+
+# Return Dataframe for predictions, liniar or polynomial regressor are optional
+def predicition(release_year, linear_regressor = None, poly_regressor = None, degree = 2, columns = None, lin_int_col = None, poly_int_col = None):
+    X_release_year = np.array(release_year).reshape(-1, 1)
+    concatenated_matrix = X_release_year
+
+    if linear_regressor is not None:
+        linear_prediction = linear_regressor.predict(X_release_year)
+        linear_prediction = np.exp(linear_prediction)
+        if lin_int_col is not None:     # if lin_int_col is used change float values for columns into int type
+            linear_prediction[:, lin_int_col] = linear_prediction[:, lin_int_col].astype(int)
+        concatenated_matrix = np.concatenate((concatenated_matrix, linear_prediction), axis=1)
+
+
+    if poly_regressor is not None:
+        poly_features = PolynomialFeatures(degree=degree)
+        X_release_year_poly = poly_features.fit_transform(X_release_year)
+
+        poly_prediction = poly_regressor.predict(X_release_year_poly)
+        poly_prediction = np.exp(poly_prediction)
+        if poly_int_col is not None:    # if poly_int_col is used change float values for columns into int type
+            poly_prediction[:, poly_int_col] = poly_prediction[:, poly_int_col].astype(int)
+        concatenated_matrix = np.concatenate((concatenated_matrix, poly_prediction), axis=1)
+
+
+    if linear_regressor is None and poly_regressor is None:
+        return pd.DataFrame()
+
+    df = pd.DataFrame(concatenated_matrix, columns=columns)
+
+    '''print('Predictii (array):\n\n')
+    np.set_printoptions(precision=4, suppress=True) # Folosita pentru a imbunatati afisarea in consola
+    print(concatenated_matrix)'''
+    return df

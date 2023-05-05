@@ -25,7 +25,7 @@ for column in keys:
     df[column + ' ln'] = np.log(df[column])         # Create new column in dataframe and transform data into ln(data)
 
 X  = df[['Release Year']].values
-y_liniar  = df[['Transistors (millions) ln', 'Process Size (nm) ln', 'TDP ln', 'Core Base Clock ln', 'Core Boost Clock ln', 'Memory Bandwidth ln']].values
+y_linear  = df[['Transistors (millions) ln', 'Process Size (nm) ln', 'TDP ln', 'Core Base Clock ln', 'Core Boost Clock ln', 'Memory Bandwidth ln']].values
 y_poly = df[['Shading Units ln', 'Memory Size ln', 'Memory Clock Speed (Effective) ln', 'Launch Price ($) ln']].values
 
 # Polynomial regression for 'Shading Units', 'Memory Size', 'Memory Clock Speed', Launch Price ($)
@@ -34,10 +34,10 @@ X_poly = poly_features.fit_transform(X)
 poly_regressor = LinearRegression()
 poly_regressor.fit(X_poly, y_poly)
 
-# Liniar regression for the rest of the columns
-liniar_regressor = LinearRegression()
-liniar_regressor.fit(X, y_liniar)
+# Linear regression for the rest of the columns
+linear_regressor = LinearRegression()
+linear_regressor.fit(X, y_linear)
 
-# Save liniar regression model and polynomial regression model
-dump(liniar_regressor, './ML/GPU_liniar_regressor.joblib')
+# Save linear regression model and polynomial regression model
+dump(linear_regressor, './ML/GPU_linear_regressor.joblib')
 dump(poly_regressor, './ML/GPU_poly_regressor.joblib')
