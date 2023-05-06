@@ -6,10 +6,11 @@ from utils import get_df_for_cpu, remove_columns
 
 
 db_path = './Data/gaming.sqlite'
-db_query = 'SELECT * FROM CPU WHERE [Release Year] > 1970 AND [Process Size (nm)] > 0 AND [Base Clock] IS NOT NULL AND [L1 Cache Size] IS NOT NULL AND [System Memory Frequency] IS NOT NULL AND [Number of Cores] > 0 AND [Launch Price ($)] > 0'
+db_query = '''SELECT * FROM CPU WHERE [Release Year] > 1970 AND [Process Size (nm)] > 0 AND [Base Clock] IS NOT NULL AND [L1 Cache Size] 
+IS NOT NULL AND [System Memory Frequency] IS NOT NULL AND [Number of Cores] > 0 AND [Launch Price ($)] > 0'''
 
 # Define set of columns from db of string or integer values
-Transform_col   = ['Base Clock', 'Boost Clock', 'L1 Cache Size', 'L2 Cache Size', 'Maximum Operating Temperature', 'System Memory Frequency', 'TDP']
+Transform_col   = ['Base Clock', 'Boost Clock', 'L1 Cache Size', 'L2 Cache Size', 'Maximum Operating Temperature', 'System Memory Frequency', 'TDP', 'Maximum Operating Temperature']
 Int_col         = ['Release Year', 'Number of Cores', 'Number of Threads', 'Process Size (nm)', 'Launch Price ($)']
 
 df = get_df_for_cpu(db_path, db_query, Transform_col)
@@ -29,7 +30,7 @@ for column in keys:
     df[column + ' ln'] = np.log(df[column])         # Create new column in dataframe and transform data into ln(data)
 
 X  = df[['Release Year']].values
-y_linear  = df[['Process Size (nm) ln', 'TDP ln', 'Base Clock ln', 'Boost Clock ln', 'L1 Cache Size ln', 'L2 Cache Size ln']].values
+y_linear  = df[['Process Size (nm) ln', 'TDP ln', 'Base Clock ln', 'Boost Clock ln', 'L1 Cache Size ln', 'L2 Cache Size ln', 'Maximum Operating Temperature ln']].values
 y_poly = df[['Number of Cores ln', 'Number of Threads ln', 'System Memory Frequency ln', 'Launch Price ($) ln']].values
 
 # Polynomial regression for 'Shading Units', 'Memory Size', 'Memory Clock Speed', Launch Price ($)

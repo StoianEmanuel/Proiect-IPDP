@@ -6,7 +6,9 @@ from utils import get_df_for_gpu, remove_columns
 
 
 db_path = './Data/gaming.sqlite'
-db_query = 'SELECT * FROM GPU WHERE [Release Year] > 1985 AND [Transistors (millions)] > 0 AND [Process Size (nm)] > 0 AND [Core Base Clock] IS NOT NULL AND [Memory Size] IS NOT NULL AND [Memory Bandwidth] IS NOT NULL AND [Memory Clock Speed (Effective)] IS NOT NULL AND [Launch Price ($)] > 0'
+db_query = '''SELECT * FROM GPU WHERE [Release Year] > 1985 AND [Transistors (millions)] > 0 AND [Process Size (nm)] > 0 AND
+            [Core Base Clock] IS NOT NULL AND [Memory Size] IS NOT NULL AND [Memory Bandwidth] IS NOT NULL AND
+            [Memory Clock Speed (Effective)] IS NOT NULL AND [Launch Price ($)] > 0'''
 
 # Define set of columns from db of string or integer values
 Transform_col   = ['Core Base Clock', 'Core Boost Clock', 'Memory Clock Speed (Effective)', 'Memory Bandwidth', 'Memory Size', 'TDP']
@@ -25,7 +27,8 @@ for column in keys:
     df[column + ' ln'] = np.log(df[column])         # Create new column in dataframe and transform data into ln(data)
 
 X  = df[['Release Year']].values
-y_linear  = df[['Transistors (millions) ln', 'Process Size (nm) ln', 'TDP ln', 'Core Base Clock ln', 'Core Boost Clock ln', 'Memory Bandwidth ln']].values
+y_linear  = df[['Transistors (millions) ln', 'Process Size (nm) ln', 'TDP ln', 'Core Base Clock ln', 'Core Boost Clock ln', 
+                'Memory Bandwidth ln']].values
 y_poly = df[['Shading Units ln', 'Memory Size ln', 'Memory Clock Speed (Effective) ln', 'Launch Price ($) ln']].values
 
 # Polynomial regression for 'Shading Units', 'Memory Size', 'Memory Clock Speed', Launch Price ($)

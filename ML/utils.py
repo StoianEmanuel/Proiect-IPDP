@@ -12,6 +12,7 @@ from sklearn.preprocessing import MinMaxScaler, PolynomialFeatures
 def get_data(db_path, db_query):
     connection = sqlite3.connect(db_path)
     df = pd.read_sql_query(db_query, connection)
+    connection.close()
     return df
 
 
@@ -68,8 +69,10 @@ def get_size_unit(df: pd.DataFrame):
 def convert_unit_to_ghz(size_unit, numeric_value):
     if size_unit == 'MHz':
         numeric_value /= 1000
-    elif size_unit == 'Hz':
+    elif size_unit == 'KHz':
         numeric_value /= 1000**2
+    elif size_unit == 'Hz':
+        numeric_value /= 1000**3
     return numeric_value
 
 
@@ -89,7 +92,7 @@ def test_and_update(column: str, values):
     size_units = get_size_unit(values)                                                      # Extract the unit part
     numeric_values = values.str.extract('(\d+\.\d+|\d+\.\d*|\.\d+|\d+)').astype(float)[0]   # Extract the numeric part
 
-    if 'CLOCK' in column.upper() and 'MEMORY' not in column.upper():
+    if ('CLOCK' in column.upper() or 'FREQUENCY' in column.upper()) and 'MEMORY' not in column.upper():
         converted_values = []
         for i in range(len(size_units)):
             if size_units[i]:  # check if size_units[i] contains elements
@@ -188,22 +191,26 @@ def get_df_for_cpu(db_path, db_query, keys = None):
     return df
 
 
-def cpu_score_row(row, columns_rev):
-    score = 0
-    for column in row.index:
-        if column in columns_rev:
-            score += math.log10(1/row[column] + 10)
-        else:
-            score += math.log10(row[column] + 10)
-    return score
+# Return dataframe from database; depends on keys
+def get_df_for_consoles(db_path, db_query, keys = None):
+    # Get data from db
+    df = get_data(db_path = db_path, db_query = db_query)
+
+    for column in chain(keys):
+        df[column].fillna("0", inplace=True)    # Fill empty values ("") with 0
+        if df[column].dtype == object:
+            df[column] = test_and_update(column, df[column])
+
+    df['Boost Clock'] = add_boost(df, 'Boost Clock')
+    df['TDP'] = fill_with_mean(df, 'TDP')
+    df['Maximum Operating Temperature'] = fill_with_mean(df, 'Maximum Operating Temperature')
+    return df
 
 
-def cpu_score_df(df, columns_max, columns_min):
+def cpu_score_df(df, columns_reverse):                  # Return CPU Score for a CPU that is stored as a dataframe
     score = 0
     for column in df.columns:
-        if column in columns_max:
-            score = score + math.log10(1/df[column] + 10)
-        elif column in columns_min:
+        if column in columns_reverse:
             score = score + math.log10(1/df[column] + 10)
         else:
             score = score + math.log10(df[column] + 10)
@@ -211,50 +218,46 @@ def cpu_score_df(df, columns_max, columns_min):
     return score
 
 
-def get_scores_cpu(df):
+def get_scores_cpu(df, scalable_columns, scalable_columns_rev = None):
     # Initialize a MinMaxScaler
     scaler = MinMaxScaler()
 
-    # Columns to be scaled
-    cols_to_scale = ['Base Clock', 'Boost Clock', 'L1 Cache Size', 'L2 Cache Size', 'Number of Cores', 'Number of Threads', 'System Memory Frequency', 'Launch Price ($)']
-    cols_to_scale_rev = ['Process Size (nm)', 'TDP', 'Maximum Operating Temperature']
     # Scale data and keep columns name
-    scaled_values = scaler.fit_transform(df[cols_to_scale])
-    column_names = df[cols_to_scale].columns.tolist()
+    scaled_values = scaler.fit_transform(df[scalable_columns])
+    column_names = df[scalable_columns].columns.tolist()
 
     # Build new dataframe with the new data and name
     df_scaled = pd.DataFrame(scaled_values, columns=column_names)
-    for column in cols_to_scale:
+    for column in scalable_columns:
         df_scaled[column] = np.log10(df[column] + 10)
-    for column in cols_to_scale_rev:
+    for column in scalable_columns_rev:
         df_scaled[column] = np.log10(1/df[column] + 10)
-    print(df_scaled.product(axis=1).values, '\n\n') # de incercat returnarea celor 2 coloane pentru a obtine scorurile
-    print(df_scaled.sum(axis=1).values) # voi realiza predictiile
+    print(df_scaled.product(axis=1).values, '\n\n')
+    print(df_scaled.sum(axis=1).values)
+
+    return(df_scaled.product(axis=1).values)
     #df_scaled['Score'] = df_scaled.product(axis=1)
     #print('\n\n', df_scaled['Score'], df_scaled.values)
 
 
-def get_scores_gpu(df):
+def get_scores_gpu(df, scalable_columns, scalable_columns_rev = None):
     # Initialize a MinMaxScaler
     scaler = MinMaxScaler()
 
-    # Columns to be scaled
-    cols_to_scale = ['Transistors (millions)', 'Shading Units', 'Core Base Clock', 'Core Boost Clock', 'Memory Size', 'Memeory Bandwidth', 'Memory Speed (Effective)', 'Launch Price ($)']
-    max_cols = ['Process Size (nm)', 'TDP']
-
     # Scale data and keep columns name
-    scaled_values = scaler.fit_transform(df[cols_to_scale])
-    column_names = df[cols_to_scale].columns.tolist()
+    scaled_values = scaler.fit_transform(df[scalable_columns])
+    column_names = df[scalable_columns].columns.tolist()
 
     # Build new dataframe with the new data and name
     df_scaled = pd.DataFrame(scaled_values, columns=column_names)
-    for column in cols_to_scale:
+    for column in scalable_columns:
         df_scaled[column] = np.log10(df[column] + 10)
-    for column in max_cols:
-        max = df[column].max()
-        df_scaled[column] = np.log10(max - df[column] + 10)
-    print(df_scaled.product(axis=1).values, '\n\n') # de incercat returnarea celor 2 coloane pentru a obtine scorurile
-    print(df_scaled.sum(axis=1).values) # voi realiza predictiile
+    for column in scalable_columns_rev:
+        df_scaled[column] = np.log10(1/df[column] + 10)
+    print(df_scaled.product(axis=1).values, '\n\n')
+    print(df_scaled.sum(axis=1).values)
+
+    return(df_scaled.product(axis=1).values)
     #df_scaled['Score'] = df_scaled.product(axis=1)
     #print('\n\n', df_scaled['Score'], df_scaled.values)
 
