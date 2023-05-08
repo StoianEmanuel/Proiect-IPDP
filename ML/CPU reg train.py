@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
 from joblib import dump
-from utils import get_df_for_cpu, remove_columns
+from utils import get_df, remove_columns, fill_with_mean, add_boost
 
 
 db_path = './Data/gaming.sqlite'
@@ -13,7 +13,10 @@ IS NOT NULL AND [System Memory Frequency] IS NOT NULL AND [Number of Cores] > 0 
 Transform_col   = ['Base Clock', 'Boost Clock', 'L1 Cache Size', 'L2 Cache Size', 'Maximum Operating Temperature', 'System Memory Frequency', 'TDP', 'Maximum Operating Temperature']
 Int_col         = ['Release Year', 'Number of Cores', 'Number of Threads', 'Process Size (nm)', 'Launch Price ($)']
 
-df = get_df_for_cpu(db_path, db_query, Transform_col)
+df = get_df(db_path, db_query, Transform_col)
+df['Boost Clock'] = add_boost(df, 'Boost Clock')
+df['TDP'] = fill_with_mean(df, 'TDP')
+df['Maximum Operating Temperature'] = fill_with_mean(df, 'Maximum Operating Temperature')
 
 # Remove unused columns
 keys = Transform_col + Int_col

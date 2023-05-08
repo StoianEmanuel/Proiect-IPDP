@@ -1,14 +1,43 @@
-from itertools import chain
-import sqlite3
 import pandas as pd
-from utils import test_and_update, add_boost, fill_with_mean, get_scores_cpu, get_scores_gpu
+from utils import add_boost, fill_with_mean, get_df
 
 
-# Open database connection and create cursor
-conn = sqlite3.connect('./Data/gaming.sqlite')
-cur = conn.cursor()
+# Get data from Consoles table
+db_path = './Data/gaming.sqlite'
+console_query = '''SELECT Name AS [Consoles Name], [Release Year], [Units Sold (millions)], [Number of Exclusives],
+ [CPU Equivalent] AS [CPU Name], [CPU Frequency] AS [Base Clock], [GPU Equivalent] AS [GPU Name], [RAM Size], [RAM Frequency], 
+ [Launch Price ($)] AS [Launch Price] FROM Consoles'''
+
+transform_columns = ['Base Clock', 'RAM Size', 'RAM Frequency', 'Launch Price']
+console_df = get_df(db_path = db_path, db_query = console_query, keys = transform_columns)
+
+
+# Get data from CPU table
+cpu_query = '''SELECT Model, Manufacturer, [Base Clock], [Boost Clock], [L1 Cache Size], [L2 Cache Size], [Number of Cores], 
+ [Number of Threads], [System Memory Frequency], [Launch Price ($)] AS [Launch Price], [Process Size (nm)] AS [Process Size], 
+ TDP, [Maximum Operating Temperature] FROM CPU'''
+
+transform_columns = ['Base Clock', 'Boost Clock', 'L1 Cache Size', 'L2 Cache Size', 'Maximum Operating Temperature', 
+                        'System Memory Frequency', 'TDP']
+cpu_df = get_df(db_path = db_path, db_query = cpu_query, keys = transform_columns)
+
+cpu_df['Boost Clock'] = add_boost(cpu_df, 'Boost Clock')
+cpu_df['TDP'] = fill_with_mean(cpu_df, 'TDP')
+cpu_df['Maximum Operating Temperature'] = fill_with_mean(cpu_df, 'Maximum Operating Temperature')
+
+# Get data from GPU table
+gpu_query = '''SELECT Model, Manufacturer, [Core Base Clock] AS [Base Clock], [Core Boost Clock] AS [Boost Clock],
+ [Shading Units], [Transistors (millions)], [Memory Size], [Launch Price ($)] AS [Launch Price], [Process Size (nm)] AS [Process Size],
+ TDP, [Memory Bandwidth], [Memory Clock Speed (Effective)] AS [Memory Clock Speed] FROM GPU'''
+
+transform_columns = ['Base Clock', 'Boost Clock', 'Memory Size', 'Launch Price', 'TDP', 'Memory Bandwidth', 'Memory Clock Speed']
+gpu_df = get_df(db_path = db_path, db_query = gpu_query, keys = transform_columns)
+
+gpu_df['Boost Clock'] = add_boost(gpu_df, 'Boost Clock')
+gpu_df['TDP'] = fill_with_mean(gpu_df, 'TDP')
 
 # Extract data from CPU and GPU tables for cpu and gpu used in consoles from Consoles table
+"""
 console_df  = pd.read_sql_query(f'''
 SELECT Consoles.Name AS [Consoles Name], Consoles.[Release Year] AS [Release Year Consoles], Consoles.[Units Sold (millions)],
  Consoles.[Number of Exclusives], Consoles.[RAM Size], Consoles.[RAM Frequency], Consoles.[Launch Price ($)] AS [Launch Price Consoles],
@@ -24,15 +53,15 @@ SELECT Consoles.Name AS [Consoles Name], Consoles.[Release Year] AS [Release Yea
  JOIN GPU ON substr(Consoles.[GPU Equivalent], 1, instr(Consoles.[GPU Equivalent], ' ')-1) = GPU.Manufacturer AND
  substr(Consoles.[GPU Equivalent], instr(Consoles.[GPU Equivalent], ' ')+1) = GPU.Model
 ''', conn)
+"""
 
 # Close connection
-conn.close()
+
 for i in range(0, console_df.shape[1], 3):
     pd.options.display.max_rows = None
     print(console_df.iloc[:, i:i+3])
 
-'''
-# Columns to be scaled for CPU equivalent
+'''# Columns to be scaled for CPU equivalent
 scalable_columns_cpu = ['Base Clock', 'Boost Clock', 'L1 Cache Size', 'L2 Cache Size', 'Number of Cores', 'Number of Threads',
                          'System Memory Frequency', 'Launch Price ($)']
 scalable_columns_rev_cpu = ['Process Size (nm)', 'TDP', 'Maximum Operating Temperature']

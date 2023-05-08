@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
 from joblib import dump
-from utils import get_df_for_gpu, remove_columns
+from utils import get_df, remove_columns, add_boost, fill_with_mean
 
 
 db_path = './Data/gaming.sqlite'
@@ -13,7 +13,10 @@ db_query = '''SELECT * FROM GPU WHERE [Release Year] > 1985 AND [Transistors (mi
 # Define set of columns from db of string or integer values
 Transform_col   = ['Core Base Clock', 'Core Boost Clock', 'Memory Clock Speed (Effective)', 'Memory Bandwidth', 'Memory Size', 'TDP']
 Int_col         = ['Release Year', 'Shading Units', 'Transistors (millions)', 'Process Size (nm)', 'Launch Price ($)']
-df = get_df_for_gpu(db_path, db_query, Transform_col, None, None)
+
+df = get_df(db_path, db_query, Transform_col, None, None)
+df['Core Boost Clock'] = add_boost(df, 'Core Boost Clock')
+df['TDP'] = fill_with_mean(df, 'TDP')
 
 # Remove unused columns
 keys = Transform_col + Int_col

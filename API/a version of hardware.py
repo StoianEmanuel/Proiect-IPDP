@@ -1,7 +1,5 @@
 from flask import Flask, request, jsonify
-import sqlite3
-import json
-import os
+import sqlite3, json, os
 
 app = Flask(__name__)
 host = os.getenv("HOST", "127.0.0.1")

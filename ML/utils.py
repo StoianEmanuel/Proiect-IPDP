@@ -1,7 +1,5 @@
 from itertools import chain
-import math
-import re
-import sqlite3
+import math, re, sqlite3
 import numpy as np
 import pandas as pd
 from scipy.stats import pearsonr
@@ -114,7 +112,7 @@ def test_and_update(column: str, values):
 
 
 # Return dataframe from database; depends on keys
-def get_df_for_gpu(db_path, db_query, keys = None, API_v2_col = None, API_v1_col = None):
+def get_df(db_path, db_query, keys = None, API_v2_col = None, API_v1_col = None):
     # Get data from db
     df = get_data(db_path = db_path, db_query = db_query)
 
@@ -144,8 +142,6 @@ def get_df_for_gpu(db_path, db_query, keys = None, API_v2_col = None, API_v1_col
                 df[column] = df[column].map(priority)                       # Change the original values from df[column] into priority values
                 continue                                                    # Skip the code below
 
-    df['Core Boost Clock'] = add_boost(df, 'Core Boost Clock')
-    df['TDP'] = fill_with_mean(df, 'TDP')
     return df
 
 
@@ -175,39 +171,8 @@ def fill_with_mean(df: pd.DataFrame, column: str):
     return copy
 
 
-# Return dataframe from database; depends on keys
-def get_df_for_cpu(db_path, db_query, keys = None):
-    # Get data from db
-    df = get_data(db_path = db_path, db_query = db_query)
-
-    for column in chain(keys):
-        df[column].fillna("0", inplace=True)    # Fill empty values ("") with 0
-        if df[column].dtype == object:
-            df[column] = test_and_update(column, df[column])
-
-    df['Boost Clock'] = add_boost(df, 'Boost Clock')
-    df['TDP'] = fill_with_mean(df, 'TDP')
-    df['Maximum Operating Temperature'] = fill_with_mean(df, 'Maximum Operating Temperature')
-    return df
-
-
-# Return dataframe from database; depends on keys
-def get_df_for_consoles(db_path, db_query, keys = None):
-    # Get data from db
-    df = get_data(db_path = db_path, db_query = db_query)
-
-    for column in chain(keys):
-        df[column].fillna("0", inplace=True)    # Fill empty values ("") with 0
-        if df[column].dtype == object:
-            df[column] = test_and_update(column, df[column])
-
-    df['Boost Clock'] = add_boost(df, 'Boost Clock')
-    df['TDP'] = fill_with_mean(df, 'TDP')
-    df['Maximum Operating Temperature'] = fill_with_mean(df, 'Maximum Operating Temperature')
-    return df
-
-
-def cpu_score_df(df, columns_reverse):                  # Return CPU Score for a CPU that is stored as a dataframe
+# Return Score for an element that is stored as a dataframe
+def score_df(df, columns_reverse):                  
     score = 0
     for column in df.columns:
         if column in columns_reverse:
@@ -218,7 +183,7 @@ def cpu_score_df(df, columns_reverse):                  # Return CPU Score for a
     return score
 
 
-def get_scores_cpu(df, scalable_columns, scalable_columns_rev = None):
+def get_scores(df, scalable_columns, scalable_columns_rev = None):
     # Initialize a MinMaxScaler
     scaler = MinMaxScaler()
 
@@ -232,34 +197,11 @@ def get_scores_cpu(df, scalable_columns, scalable_columns_rev = None):
         df_scaled[column] = np.log10(df[column] + 10)
     for column in scalable_columns_rev:
         df_scaled[column] = np.log10(1/df[column] + 10)
-    print(df_scaled.product(axis=1).values, '\n\n')
-    print(df_scaled.sum(axis=1).values)
+    
+    #print(df_scaled.product(axis=1).values, '\n\n')
+    #print(df_scaled.sum(axis=1).values)
 
     return(df_scaled.product(axis=1).values)
-    #df_scaled['Score'] = df_scaled.product(axis=1)
-    #print('\n\n', df_scaled['Score'], df_scaled.values)
-
-
-def get_scores_gpu(df, scalable_columns, scalable_columns_rev = None):
-    # Initialize a MinMaxScaler
-    scaler = MinMaxScaler()
-
-    # Scale data and keep columns name
-    scaled_values = scaler.fit_transform(df[scalable_columns])
-    column_names = df[scalable_columns].columns.tolist()
-
-    # Build new dataframe with the new data and name
-    df_scaled = pd.DataFrame(scaled_values, columns=column_names)
-    for column in scalable_columns:
-        df_scaled[column] = np.log10(df[column] + 10)
-    for column in scalable_columns_rev:
-        df_scaled[column] = np.log10(1/df[column] + 10)
-    print(df_scaled.product(axis=1).values, '\n\n')
-    print(df_scaled.sum(axis=1).values)
-
-    return(df_scaled.product(axis=1).values)
-    #df_scaled['Score'] = df_scaled.product(axis=1)
-    #print('\n\n', df_scaled['Score'], df_scaled.values)
 
 
 # Return Dataframe for predictions, liniar or polynomial regressor are optional
@@ -290,8 +232,19 @@ def predicition(release_year, linear_regressor = None, poly_regressor = None, de
         return pd.DataFrame()
 
     df = pd.DataFrame(concatenated_matrix, columns=columns)
+    return df
 
-    '''print('Predictii (array):\n\n')
-    np.set_printoptions(precision=4, suppress=True) # Folosita pentru a imbunatati afisarea in consola
-    print(concatenated_matrix)'''
+
+# Return similarity coefficient between 2 strings
+def jaccard_similarity(str1, str2):
+    set1 = set(str1)
+    set2 = set(str2)
+    intersection = len(set1.intersection(set2))
+    union = len(set1.union(set2))
+    similarity = intersection / union
+    return similarity * 100
+
+
+def get_row_for_score(df, score):
+
     return df
