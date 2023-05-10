@@ -6,12 +6,6 @@ host = os.getenv("HOST", "127.0.0.1")
 port = int(os.getenv("PORT", "8567"))
 
 
-# Function to establish connection with the database
-def get_db_connection():
-    conn = sqlite3.connect("./Data/gaming.sqlite")
-    conn.row_factory = sqlite3.Row
-    return conn
-
 # Function to return a value or the dessired value if value returned by condition is true
 def set_value_if(value, op, test_value, result):
     if value is None:
@@ -56,7 +50,7 @@ def update(lst, filters):
             poz2, op2, test_value2, result2, modify = filter[4:9]
             if modify == True:      # check if the second value can be modified
                 lst[poz2] = set_value_if(lst[poz2], op2, test_value2, result2)
-
+                
     return lst
 
 

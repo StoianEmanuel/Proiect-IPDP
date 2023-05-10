@@ -8,15 +8,6 @@ app = Flask(__name__)
 # port = int(os.getenv('PORT', '8086'))
 
 
-# Function to establish connection with the database
-
-
-def get_db_connection():
-    conn = sqlite3.connect("../Data/gaming.sqlite")
-    conn.row_factory = sqlite3.Row
-    return conn
-
-
 # Function to return a value or the dessired value if value returned by condition is true
 def set_value_if(value, op, test_value, result):
     if value is None:
@@ -54,7 +45,7 @@ def test_value(value, op, test_value):
 # Function used to update data from list lst and allow testing for simple or double condition
 def update(lst, filters):
     for filter in filters:
-        poz1, op1, test_value1, result1 = filter[0:4]
+        poz1, op1, test_value1, result1 = filter[0:4]       # filter[0:4] = index1, 'comparison op', compared value, replace if condition
         lst[poz1] = set_value_if(lst[poz1], op1, test_value1, result1)
           
         if len(filter) == 9:    # double condition
