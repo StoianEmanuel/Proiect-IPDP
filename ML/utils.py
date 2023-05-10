@@ -1,5 +1,5 @@
 from itertools import chain
-import math, re, sqlite3
+import re, sqlite3
 import numpy as np
 import pandas as pd
 from scipy.stats import pearsonr
@@ -171,18 +171,6 @@ def fill_with_mean(df: pd.DataFrame, column: str):
     return copy
 
 
-# Return Score for an element that is stored as a dataframe
-def score_df(df, columns_reverse):                  
-    score = 0
-    for column in df.columns:
-        if column in columns_reverse:
-            score = score + math.log10(1/df[column] + 10)
-        else:
-            score = score + math.log10(df[column] + 10)
-        
-    return score
-
-
 def get_scores(df, scalable_columns, scalable_columns_rev = None):
     # Initialize a MinMaxScaler
     scaler = MinMaxScaler()
@@ -243,8 +231,3 @@ def jaccard_similarity(str1, str2):
     union = len(set1.union(set2))
     similarity = intersection / union
     return similarity * 100
-
-
-def get_row_for_score(df, score):
-
-    return df
