@@ -1,5 +1,9 @@
 from utils import get_correlation, remove_columns, get_df, fill_with_mean, add_boost
 
+
+# modify it for a proper corelation
+
+
 main_key= ['Release Year']
 other_keys = ['Base Clock', 'Boost Clock', 'L1 Cache Size', 'L2 Cache Size', 'Maximum Operating Temperature',
               'System Memory Frequency', 'TDP', 'Number of Cores', 'Number of Threads', 'Process Size (nm)', 'Launch Price ($)']
