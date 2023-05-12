@@ -202,7 +202,6 @@ def get_data():
         #print(info)
         columns_to_remove = ['Launch Price ($)']
         info = remove_columns(info, columns_to_remove)
-
         #print(info)
 
     elif data_type == "video_games":
@@ -316,6 +315,8 @@ def get_data():
         else:
             info = get_all(datatype= "GPU",  limit = None, apply_update = True, apply_filter = True,
                             filter_conditions = filter_conditions)  # Retrieve all GPU
+    columns_to_remove = ['Integration Density']
+    info = remove_columns(info, columns_to_remove)
 
     context = {"@schema": contextul}
     data = {"@context": context, "@list": info}
