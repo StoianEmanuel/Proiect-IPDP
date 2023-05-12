@@ -1,7 +1,5 @@
 from flask import Flask, request, jsonify
-import sqlite3
-import json
-import os
+import sqlite3, json, os
 
 app = Flask(__name__)
 # host = os.getenv('HOST', '127.0.0.1')
@@ -193,9 +191,11 @@ def get_data():
             [	10	, "==" , "NULL" , None ] 
         ]
         if snippet == "true":
-            info = get_all(datatype= "consoles",  limit = 20, apply_update = True, apply_filter = True, filter_conditions = filter_conditions, extra_updates = extra_updates)  # Retrieve first 20 consoles
+            info = get_all(datatype= "consoles",  limit = 20, apply_update = True, apply_filter = True,
+                            filter_conditions = filter_conditions, extra_updates = extra_updates)  # Retrieve first 20 consoles
         else:
-            info = get_all(datatype= "consoles",  limit = None, apply_update = True, apply_filter = True, filter_conditions = filter_conditions, extra_updates = extra_updates)  # Retrieve all consoles
+            info = get_all(datatype= "consoles",  limit = None, apply_update = True, apply_filter = True,
+                            filter_conditions = filter_conditions, extra_updates = extra_updates)  # Retrieve all consoles
         info = remove_last_property(info)
 
     elif data_type == "video_games":
@@ -212,9 +212,11 @@ def get_data():
             [	16	, "==",	"NULL",	None 	]
         ]
         if snippet == "true":
-            info = get_all(datatype= "videogames",  limit = 20, apply_update = True, apply_filter = True, filter_conditions = filter_conditions)  # Retrieve first 20 mice
+            info = get_all(datatype= "videogames",  limit = 20, apply_update = True,
+                            apply_filter = True, filter_conditions = filter_conditions)  # Retrieve first 20 mice
         else:
-            info = get_all(datatype= "videogames",  limit = None, apply_update = True, apply_filter = True, filter_conditions = filter_conditions)  # Retrieve all mice
+            info = get_all(datatype= "videogames",  limit = None, apply_update = True,
+                            apply_filter = True, filter_conditions = filter_conditions)  # Retrieve all mice
 
         query_set = ['Platform', 'console_platform', 'platform_mappings', 'game_platform']
         info = update_data_with_query(info, query_set)
@@ -237,9 +239,11 @@ def get_data():
             [	13	, "==",	"NULL",	None 	]
         ]
         if snippet == "true":
-            info = get_all(datatype= "mice",  limit = 20, apply_update = True, apply_filter = True, filter_conditions = filter_conditions)  # Retrieve first 20 mice
+            info = get_all(datatype= "mice",  limit = 20, apply_update = True,
+                            apply_filter = True, filter_conditions = filter_conditions)  # Retrieve first 20 mice
         else:
-            info = get_all(datatype= "mice",  limit = None, apply_update = True, apply_filter = True, filter_conditions = filter_conditions)  # Retrieve all mice
+            info = get_all(datatype= "mice",  limit = None, apply_update = True,
+                            apply_filter = True, filter_conditions = filter_conditions)  # Retrieve all mice
 
 
     elif data_type == "CPU":
@@ -265,9 +269,11 @@ def get_data():
             [	19	, "==",	0     ,	None 	]
         ]
         if snippet == "true":
-            info = get_all(datatype= "CPU",  limit = 20, apply_update = True, apply_filter = True, filter_conditions = filter_conditions)  # Retrieve first 20 CPU
+            info = get_all(datatype= "CPU",  limit = 20, apply_update = True,
+                            apply_filter = True, filter_conditions = filter_conditions)  # Retrieve first 20 CPU
         else:
-            info = get_all(datatype= "CPU",  limit = None, apply_update = True, apply_filter = True, filter_conditions = filter_conditions)  # Retrieve all CPU
+            info = get_all(datatype= "CPU",  limit = None, apply_update = True,
+                            apply_filter = True, filter_conditions = filter_conditions)  # Retrieve all CPU
 
     elif data_type == "GPU":
         contextul = "SQLite/GPU"
@@ -298,9 +304,11 @@ def get_data():
             [	24	, "==",	0     ,	None 	]
         ]
         if snippet == "true":
-            info = get_all(datatype= "GPU",  limit = 20, apply_update = True, apply_filter = True, filter_conditions = filter_conditions)  # Retrieve first 20 GPU
+            info = get_all(datatype= "GPU",  limit = 20, apply_update = True, apply_filter = True,
+                            filter_conditions = filter_conditions)  # Retrieve first 20 GPU
         else:
-            info = get_all(datatype= "GPU",  limit = None, apply_update = True, apply_filter = True, filter_conditions = filter_conditions)  # Retrieve all GPU
+            info = get_all(datatype= "GPU",  limit = None, apply_update = True, apply_filter = True,
+                            filter_conditions = filter_conditions)  # Retrieve all GPU
 
     context = {"@schema": contextul}
     data = {"@context": context, "@list": info}
@@ -312,7 +320,7 @@ def get_data():
     )
     return response
 
-
+# asociaza unei persoane + get_meta / alta popularea bazei de date / docker ?
 def get_column_data(table_name):
     conn = sqlite3.connect("../Data/gaming.sqlite")
     # Define the SQL query to retrieve column names

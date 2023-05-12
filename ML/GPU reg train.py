@@ -22,17 +22,17 @@ df['TDP'] = fill_with_mean(df, 'TDP')
 keys = Transform_col + Int_col
 df = remove_columns(df, keys)
 
-df['Shading Units ln'] = df['Shading Units'].replace(0, 1)
-df['Shading Units ln'] = np.log(df['Shading Units ln'])
+df['Shading Units'] = df['Shading Units'].replace(0, 1)
+df['Shading Units'] = np.log(df['Shading Units'])
 
 keys = [col for col in keys if col != 'Release Year' and col != 'Shading Units']
 for column in keys:
-    df[column + ' ln'] = np.log(df[column])         # Create new column in dataframe and transform data into ln(data)
+    df[column] = np.log(df[column])         # Create new column in dataframe and transform data into ln(data)
 
 X  = df[['Release Year']].values
-y_linear  = df[['Transistors (millions) ln', 'Process Size (nm) ln', 'TDP ln', 'Core Base Clock ln', 'Core Boost Clock ln', 
-                'Memory Bandwidth ln']].values
-y_poly = df[['Shading Units ln', 'Memory Size ln', 'Memory Clock Speed (Effective) ln', 'Launch Price ($) ln']].values
+y_linear  = df[['Transistors (millions)', 'Process Size (nm)', 'TDP', 'Core Base Clock', 'Core Boost Clock', 
+                'Memory Bandwidth']].values
+y_poly = df[['Shading Units', 'Memory Size', 'Memory Clock Speed (Effective)', 'Launch Price ($)']].values
 
 # Polynomial regression for 'Shading Units', 'Memory Size', 'Memory Clock Speed', Launch Price ($)
 poly_features = PolynomialFeatures(degree = 2)

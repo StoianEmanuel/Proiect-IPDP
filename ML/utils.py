@@ -193,7 +193,8 @@ def get_scores(df, scalable_columns, scalable_columns_rev = None):
 
 
 # Return Dataframe for predictions, liniar or polynomial regressor are optional
-def predicition(release_year, linear_regressor = None, poly_regressor = None, degree = 2, columns = None, lin_int_col = None, poly_int_col = None):
+def predicition(release_year, linear_regressor = None, poly_regressor = None, degree = 2, columns = None, lin_int_col = None,
+                 poly_int_col = None, filler_columns = None):
     X_release_year = np.array(release_year).reshape(-1, 1)
     concatenated_matrix = X_release_year
 
@@ -216,10 +217,19 @@ def predicition(release_year, linear_regressor = None, poly_regressor = None, de
         concatenated_matrix = np.concatenate((concatenated_matrix, poly_prediction), axis=1)
 
 
-    if linear_regressor is None and poly_regressor is None:
+    if linear_regressor is None and poly_regressor is None and filler_columns is None:
         return pd.DataFrame()
 
     df = pd.DataFrame(concatenated_matrix, columns=columns)
+    if filler_columns is not None:
+        if len(filler_columns) != 1:
+            for column in filler_columns:
+                df[column] = ['N/A'] * len(df)
+                #df[column] = df[column].fillna('N/A')
+        else:
+            df[filler_columns[0]] = ['N/A'] * len(df)
+            #df[column] = df[column].fillna('N/A')
+            #df[filler_columns[0]] = df[filler_columns[0]].fillna(value='N/A')
     return df
 
 

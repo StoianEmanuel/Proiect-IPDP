@@ -57,8 +57,6 @@ cols_rev_gpu = ['Process Size', 'TDP']
 gpu_df['GPU Score'] = get_scores(gpu_df, scalable_columns = cols_n_gpu, scalable_columns_rev = cols_rev_gpu)
 
 
-#print('\n\n', cpu_df.sort_values('CPU Score')[['Model', 'CPU Score']].to_string(float_format='%.2f'), '\n\n')
-#print(gpu_df.sort_values('GPU Score')[['Model', 'GPU Score']].to_string(float_format='%.2f'), '\n\n')
 
 for index in range(len(console_df['GPU Equivalent'])):
     cpu_sub_score = 1000

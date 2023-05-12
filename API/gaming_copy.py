@@ -1,6 +1,8 @@
 from flask import Flask, request, jsonify
 import sqlite3, json, os
 
+import numpy as np
+
 app = Flask(__name__)
 host = os.getenv("HOST", "127.0.0.1")
 port = int(os.getenv("PORT", "8567"))
@@ -120,14 +122,15 @@ def get_all(datatype= '',  limit = None, apply_update = False, apply_filter = Fa
 
 
 # Function to remove the last (key, value) pair from the dictionary
-def remove_last_property(data_list):
+def remove_columns(data_list, columns_to_remove):
     for data in data_list:
-        data.popitem()  
+        for column in columns_to_remove:
+            data.pop(column, None)  
     return data_list
 
 
 # Function to update data from a dictionary using querys
-def update_data_with_query(data, query_set):
+def update_data_using_query(data, query_set):
     conn = sqlite3.connect("./Data/gaming.sqlite")
     column_table1, desired_column, table, column_table2 = query_set[0:4]
     for element in data:
@@ -191,10 +194,16 @@ def get_data():
             [	10	, "==" , "NULL" , None ] 
         ]
         if snippet == "true":
-            info = get_all(datatype= "consoles",  limit = 20, apply_update = True, apply_filter = True, filter_conditions = filter_conditions, extra_updates = extra_updates)  # Retrieve first 20 consoles
+            info = get_all(datatype= "consoles",  limit = 20, apply_update = True, apply_filter = True,
+                            filter_conditions = filter_conditions, extra_updates = extra_updates)  # Retrieve first 20 consoles
         else:
-            info = get_all(datatype= "consoles",  limit = None, apply_update = True, apply_filter = True, filter_conditions = filter_conditions, extra_updates = extra_updates)  # Retrieve all consoles
-        info = remove_last_property(info)
+            info = get_all(datatype= "consoles",  limit = None, apply_update = True, apply_filter = True,
+                            filter_conditions = filter_conditions, extra_updates = extra_updates)  # Retrieve all consoles
+        #print(info)
+        columns_to_remove = ['Launch Price ($)']
+        info = remove_columns(info, columns_to_remove)
+
+        #print(info)
 
     elif data_type == "video_games":
         contextul = "SQLite/video_games"
@@ -210,12 +219,14 @@ def get_data():
             [	16	, "==",	"NULL",	None 	]
         ]
         if snippet == "true":
-            info = get_all(datatype= "videogames",  limit = 20, apply_update = True, apply_filter = True, filter_conditions = filter_conditions)  # Retrieve first 20 mice
+            info = get_all(datatype= "videogames",  limit = 20, apply_update = True, apply_filter = True,
+                            filter_conditions = filter_conditions)  # Retrieve first 20 mice
         else:
-            info = get_all(datatype= "videogames",  limit = None, apply_update = True, apply_filter = True, filter_conditions = filter_conditions)  # Retrieve all mice
+            info = get_all(datatype= "videogames",  limit = None, apply_update = True, apply_filter = True,
+                            filter_conditions = filter_conditions)  # Retrieve all mice
 
         query_set = ['Platform', 'console_platform', 'platform_mappings', 'game_platform']
-        info = update_data_with_query(info, query_set)
+        info = update_data_using_query(info, query_set)     # Use query to replace data from info[] with the one from the query
 
     elif data_type == "mice":
         contextul = "SQLite/mice"
@@ -235,9 +246,11 @@ def get_data():
             [	13	, "==",	"NULL",	None 	]
         ]
         if snippet == "true":
-            info = get_all(datatype= "mice",  limit = 20, apply_update = True, apply_filter = True, filter_conditions = filter_conditions)  # Retrieve first 20 mice
+            info = get_all(datatype= "mice",  limit = 20, apply_update = True, apply_filter = True,
+                            filter_conditions = filter_conditions)  # Retrieve first 20 mice
         else:
-            info = get_all(datatype= "mice",  limit = None, apply_update = True, apply_filter = True, filter_conditions = filter_conditions)  # Retrieve all mice
+            info = get_all(datatype= "mice",  limit = None, apply_update = True, apply_filter = True,
+                            filter_conditions = filter_conditions)  # Retrieve all mice
 
 
     elif data_type == "CPU":
@@ -263,11 +276,13 @@ def get_data():
             [	19	, "==",	0     ,	None 	]
         ]
         if snippet == "true":
-            info = get_all(datatype= "CPU",  limit = 20, apply_update = True, apply_filter = True, filter_conditions = filter_conditions)  # Retrieve first 20 CPU
+            info = get_all(datatype= "CPU",  limit = 20, apply_update = True, apply_filter = True,
+                            filter_conditions = filter_conditions)  # Retrieve first 20 CPU
         else:
-            info = get_all(datatype= "CPU",  limit = None, apply_update = True, apply_filter = True, filter_conditions = filter_conditions)  # Retrieve all CPU
+            info = get_all(datatype= "CPU",  limit = None, apply_update = True, apply_filter = True,
+                            filter_conditions = filter_conditions)  # Retrieve all CPU
 
-    elif data_type == "GPU":
+    else:
         contextul = "SQLite/GPU"
         filter_conditions = [
             [	0	, "==",	"NULL",	None 	],
@@ -296,9 +311,11 @@ def get_data():
             [	24	, "==",	0     ,	None 	]
         ]
         if snippet == "true":
-            info = get_all(datatype= "GPU",  limit = 20, apply_update = True, apply_filter = True, filter_conditions = filter_conditions)  # Retrieve first 20 GPU
+            info = get_all(datatype= "GPU",  limit = 20, apply_update = True, apply_filter = True,
+                            filter_conditions = filter_conditions)  # Retrieve first 20 GPU
         else:
-            info = get_all(datatype= "GPU",  limit = None, apply_update = True, apply_filter = True, filter_conditions = filter_conditions)  # Retrieve all GPU
+            info = get_all(datatype= "GPU",  limit = None, apply_update = True, apply_filter = True,
+                            filter_conditions = filter_conditions)  # Retrieve all GPU
 
     context = {"@schema": contextul}
     data = {"@context": context, "@list": info}
@@ -357,6 +374,54 @@ def get_meta():
     json_ld_doc = json.dumps(data, indent=4)
 
     # Return response in JSON-LD format
+    response = app.response_class(
+        response=json_ld_doc, status=200, mimetype="application/ld+json"
+    )
+    return response
+
+
+@app.route("/get_prediction")
+def get_data_for_ML():
+
+    data_type = request.args.get("data_type")
+    print(data_type,'\n\n')
+    valid_data_types = ["consoles", "CPU", "GPU"]
+    years = request.args.get("snippet")
+
+    # Check if data_type is valid
+    if data_type not in valid_data_types:
+        error_response = {"error": "Invalid data type"}
+        return jsonify(error_response), 400
+
+    # Check if snippet parameter is provided
+    if not years:
+        error_response = {"error": "snippet parameter is missing"}
+        return jsonify(error_response), 400
+    
+    numbers = years.split(',')
+    years_int = []
+
+    if data_type == "consoles":
+        contextul = "SQLite/consoles"
+        info = years
+
+    elif data_type == "GPU":
+        contextul = "SQLite/GPU"
+        for number in numbers:
+            n = int(number)
+            if 1990 <= n <= 2030:
+                years_int.append(n)
+        info = years_int
+
+    else:
+        contextul = "SQLite/CPU"
+        info = get_all(datatype= "GPU",  limit = None, apply_update = False, apply_filter = False,
+                            filter_conditions = None)  # Retrieve first 20 GPU
+
+    context = {"@schema": contextul}
+    data = {"@context": context, "@list": info}
+    json_ld_doc = json.dumps(data, indent=4)
+
     response = app.response_class(
         response=json_ld_doc, status=200, mimetype="application/ld+json"
     )

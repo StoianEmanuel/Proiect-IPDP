@@ -10,7 +10,8 @@ db_query = '''SELECT * FROM CPU WHERE [Release Year] > 1970 AND [Process Size (n
 IS NOT NULL AND [System Memory Frequency] IS NOT NULL AND [Number of Cores] > 0 AND [Launch Price ($)] > 0'''
 
 # Define set of columns from db of string or integer values
-Transform_col   = ['Base Clock', 'Boost Clock', 'L1 Cache Size', 'L2 Cache Size', 'Maximum Operating Temperature', 'System Memory Frequency', 'TDP', 'Maximum Operating Temperature']
+Transform_col   = ['Base Clock', 'Boost Clock', 'L1 Cache Size', 'L2 Cache Size', 'Maximum Operating Temperature',
+                    'System Memory Frequency', 'TDP', 'Maximum Operating Temperature']
 Int_col         = ['Release Year', 'Number of Cores', 'Number of Threads', 'Process Size (nm)', 'Launch Price ($)']
 
 df = get_df(db_path, db_query, Transform_col)
@@ -22,19 +23,19 @@ df['Maximum Operating Temperature'] = fill_with_mean(df, 'Maximum Operating Temp
 keys = Transform_col + Int_col
 df = remove_columns(df, keys)
 
-df['Number of Threads ln'] = df['Number of Threads'].replace(0, 0.5)
-df['Number of Threads ln'] = np.log(df['Number of Threads ln'])
+df['Number of Threads'] = df['Number of Threads'].replace(0, 0.5)
+df['Number of Threads'] = np.log(df['Number of Threads'])
 
-df['L2 Cache Size ln'] = df['L2 Cache Size'].replace(0, 0.00000001)
-df['L2 Cache Size ln'] = np.log(df['L2 Cache Size ln'])
+df['L2 Cache Size'] = df['L2 Cache Size'].replace(0, 0.00000001)
+df['L2 Cache Size'] = np.log(df['L2 Cache Size'])
 
 keys = [col for col in keys if col != 'Release Year' and col != 'Number of Threads' and col != 'L2 Cache Size']
 for column in keys:
-    df[column + ' ln'] = np.log(df[column])         # Create new column in dataframe and transform data into ln(data)
+    df[column] = np.log(df[column])         # Create new column in dataframe and transform data into ln(data)
 
 X  = df[['Release Year']].values
-y_linear  = df[['Process Size (nm) ln', 'TDP ln', 'Base Clock ln', 'Boost Clock ln', 'L1 Cache Size ln', 'L2 Cache Size ln', 'Maximum Operating Temperature ln']].values
-y_poly = df[['Number of Cores ln', 'Number of Threads ln', 'System Memory Frequency ln', 'Launch Price ($) ln']].values
+y_linear  = df[['Process Size (nm)', 'TDP', 'Base Clock', 'Boost Clock', 'L1 Cache Size', 'L2 Cache Size', 'Maximum Operating Temperature']].values
+y_poly = df[['Number of Cores', 'Number of Threads', 'System Memory Frequency', 'Launch Price ($)']].values
 
 # Polynomial regression for 'Shading Units', 'Memory Size', 'Memory Clock Speed', Launch Price ($)
 poly_features = PolynomialFeatures(degree = 2)

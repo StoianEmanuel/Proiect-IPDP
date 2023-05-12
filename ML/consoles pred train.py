@@ -3,8 +3,11 @@ import numpy as np
 import math
 from utils import add_boost, fill_with_mean, get_df, jaccard_similarity, get_scores
 from sklearn.linear_model import LinearRegression
-from sklearn.preprocessing import PolynomialFeatures
+from sklearn.preprocessing import PolynomialFeatures, SplineTransformer
 from joblib import dump
+
+from sklearn.pipeline import make_pipeline
+
 
 # Get data from Consoles table
 db_path = './Data/gaming.sqlite'
@@ -48,7 +51,8 @@ cols_rev_cpu = ['Process Size', 'TDP', 'Maximum Operating Temperature']
 cpu_df['CPU Score'] = get_scores(cpu_df, scalable_columns = cols_n_cpu, scalable_columns_rev = cols_rev_cpu)
 
 
-cols_n_gpu = ['Transistors (millions)', 'Shading Units', 'Base Clock', 'Boost Clock', 'Memory Size', 'Memory Bandwidth', 'Memory Clock Speed', 'Launch Price']
+cols_n_gpu = ['Transistors (millions)', 'Shading Units', 'Base Clock', 'Boost Clock', 'Memory Size', 'Memory Bandwidth',
+               'Memory Clock Speed', 'Launch Price']
 cols_rev_gpu = ['Process Size', 'TDP']
 gpu_df['GPU Score'] = get_scores(gpu_df, scalable_columns = cols_n_gpu, scalable_columns_rev = cols_rev_gpu)
 
