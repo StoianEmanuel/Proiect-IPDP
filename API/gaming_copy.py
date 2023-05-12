@@ -202,7 +202,7 @@ def get_data():
         #print(info)
         columns_to_remove = ['Launch Price ($)']
         info = remove_columns(info, columns_to_remove)
-        #print(info)
+        
 
     elif data_type == "video_games":
         contextul = "SQLite/video_games"
@@ -315,14 +315,15 @@ def get_data():
         else:
             info = get_all(datatype= "GPU",  limit = None, apply_update = True, apply_filter = True,
                             filter_conditions = filter_conditions)  # Retrieve all GPU
-    columns_to_remove = ['Integration Density']
-    info = remove_columns(info, columns_to_remove)
+        columns_to_remove = ['Integration Density']
+        info = remove_columns(info, columns_to_remove)
 
+
+    # Return response in JSON-LD format
     context = {"@schema": contextul}
     data = {"@context": context, "@list": info}
     json_ld_doc = json.dumps(data, indent=4)
 
-    # Return response in JSON-LD format
     response = app.response_class(
         response=json_ld_doc, status=200, mimetype="application/ld+json"
     )
@@ -359,8 +360,10 @@ def get_meta():
     meta4 = get_column_data(table_name4)
     meta5 = get_column_data(table_name5)
 
-    last_comma_index = meta2.rfind(",")  # find index of last comma
-    meta2 = meta2[:last_comma_index]  # slice string to get left part to remove the price 
+    # stergerea celor 2 coloane pentru a nu fi necesare schimbari asupra platformei  
+    meta2 = meta2.replace(',Launch Price ($)', '')
+    meta5 = meta5.replace('Integration Density,', '')
+
 
     # Create JSON-LD document
     context = {"@schema": "SQLite"}
@@ -394,7 +397,7 @@ def get_data_for_ML():
         error_response = {"error": "Invalid data type"}
         return jsonify(error_response), 400
 
-    # Check if snippet parameter is provided
+    # Check if years parameter is provided
     if not years:
         error_response = {"error": "snippet parameter is missing"}
         return jsonify(error_response), 400

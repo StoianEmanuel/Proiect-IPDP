@@ -120,14 +120,15 @@ def get_all(datatype= '',  limit = None, apply_update = False, apply_filter = Fa
 
 
 # Function to remove the last (key, value) pair from the dictionary
-def remove_last_property(data_list):
+def remove_columns(data_list, columns_to_remove):
     for data in data_list:
-        data.popitem()  
+        for column in columns_to_remove:
+            data.pop(column, None)  
     return data_list
 
 
 # Function to update data from a dictionary using querys
-def update_data_with_query(data, query_set):
+def update_data_using_query(data, query_set):
     conn = sqlite3.connect("../Data/gaming.sqlite")
     column_table1, desired_column, table, column_table2 = query_set[0:4]
     for element in data:
@@ -196,7 +197,10 @@ def get_data():
         else:
             info = get_all(datatype= "consoles",  limit = None, apply_update = True, apply_filter = True,
                             filter_conditions = filter_conditions, extra_updates = extra_updates)  # Retrieve all consoles
-        info = remove_last_property(info)
+        
+        columns_to_remove = ['Launch Price ($)']
+        info = remove_columns(info, columns_to_remove)
+
 
     elif data_type == "video_games":
         contextul = "SQLite/video_games"
@@ -219,7 +223,7 @@ def get_data():
                             apply_filter = True, filter_conditions = filter_conditions)  # Retrieve all mice
 
         query_set = ['Platform', 'console_platform', 'platform_mappings', 'game_platform']
-        info = update_data_with_query(info, query_set)
+        info = update_data_using_query(info, query_set)
 
     elif data_type == "mice":
         contextul = "SQLite/mice"
@@ -309,18 +313,21 @@ def get_data():
         else:
             info = get_all(datatype= "GPU",  limit = None, apply_update = True, apply_filter = True,
                             filter_conditions = filter_conditions)  # Retrieve all GPU
+        columns_to_remove = ['Integration Density']
+        info = remove_columns(info, columns_to_remove)
 
+
+    # Return response in JSON-LD format
     context = {"@schema": contextul}
     data = {"@context": context, "@list": info}
     json_ld_doc = json.dumps(data, indent=4)
 
-    # Return response in JSON-LD format
     response = app.response_class(
         response=json_ld_doc, status=200, mimetype="application/ld+json"
     )
     return response
 
-# asociaza unei persoane + get_meta / alta popularea bazei de date / docker ?
+
 def get_column_data(table_name):
     conn = sqlite3.connect("../Data/gaming.sqlite")
     # Define the SQL query to retrieve column names
@@ -351,8 +358,9 @@ def get_meta():
     meta4 = get_column_data(table_name4)
     meta5 = get_column_data(table_name5)
 
-    last_comma_index = meta2.rfind(",")  # find index of last comma
-    meta2 = meta2[:last_comma_index]  # slice string to get left part to remove the price 
+    # stergerea celor 2 coloane pentru a nu fi necesare schimbari asupra platformei  
+    meta2 = meta2.replace(',Launch Price ($)', '')
+    meta5 = meta5.replace('Integration Density,', '')
 
     # Create JSON-LD document
     context = {"@schema": "SQLite"}
