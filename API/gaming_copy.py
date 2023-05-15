@@ -4,7 +4,7 @@ import sqlite3, json, os
 #from joblib import load
 import sys
 sys.path.insert(0, './ML')
-from utils import remove_columns, reorder_columns
+from utils import remove_columns, reorder_columns, add_size_units_to_df_values
 from consoles_test import consoles_prediction
 from predictions import Processor
 
@@ -422,8 +422,9 @@ def get_data_for_ML():
         df = consoles_prediction(years_int, database_path = './Data/gaming.sqlite', linear_regressor_path = './ML/consoles_linear_regressor.joblib',
                                   polynomial_regressor_path = './ML/consoles_poly_regressor.joblib')
         columns = ['Release Year', 'GPU Equivalent', 'Base Clock', 'RAM Size', 'RAM Frequency', 'Number of Exclusives',
-                'Units Sold (millions)', 'CPU Equivalent', 'Launch Price']
+                'Units Sold (millions)', 'CPU Equivalent', 'Launch Price ($)']
         df = reorder_columns(df, [0, 6, 5, 7, 2, 1, 3, 4, 8])
+        df = add_size_units_to_df_values(df, columns = ['RAM Size', 'RAM Frequency'])
         info = df.to_dict(orient='records')
 
     elif data_type == "GPU":
@@ -448,6 +449,8 @@ def get_data_for_ML():
         gpu_processor.read_data()
         df = gpu_processor.get_df()
         df = reorder_columns(df, [0, 1, 2, 8, 7, 4, 5, 9, 6, 10, 3, 11])
+        df = add_size_units_to_df_values(df, columns = ['TDP', 'Core Base Clock', 'Core Boost Clock',
+            'Memory Bandwidth', 'Memory Size', 'Integration Density', 'Memory Clock Speed (Effective)'])
         info = df.to_dict(orient='records')
     else:
         contextul = "SQLite/CPU"
@@ -471,6 +474,8 @@ def get_data_for_ML():
         cpu_processor.read_data()
         df = cpu_processor.get_df()
         df = reorder_columns(df, [0, 1, 8, 9, 3, 4, 5, 6, 10, 2, 7, 11])
+        df = df.add_size_unit_to_df(df, columns = ['TDP', 'Base Clock', 'Boost Clock', 'L1 Cache Size', 'L2 Cache Size',
+                    'Maximum Operating Temperature', 'System Memory Frequency'])
         info = df.to_dict(orient='records')
 
     context = {"@schema": contextul}

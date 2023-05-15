@@ -7,7 +7,7 @@ def consoles_prediction(year = [], database_path = '', linear_regressor_path = N
     poly_regressor = load(polynomial_regressor_path)
 
     columns = ['Release Year', 'GPU Equivalent', 'Base Clock', 'RAM Size', 'RAM Frequency', 'Number of Exclusives',
-                'Units Sold (millions)', 'CPU Equivalent', 'Launch Price']
+                'Units Sold (millions)', 'CPU Equivalent', 'Launch Price ($)']
 
     lin_int_col  = [0]           # Specify columns that will be transformed into int
     poly_int_col = [0, -1]
@@ -19,7 +19,7 @@ def consoles_prediction(year = [], database_path = '', linear_regressor_path = N
     # Get data from CPU table
     db_path = database_path
     cpu_query = '''SELECT Model, Manufacturer, [Base Clock], [Boost Clock], [L1 Cache Size], [L2 Cache Size], [Number of Cores], 
-    [Number of Threads], [System Memory Frequency], [Launch Price ($)] AS [Launch Price], [Process Size (nm)] AS [Process Size], 
+    [Number of Threads], [System Memory Frequency], [Launch Price ($)], [Process Size (nm)] AS [Process Size], 
     TDP, [Maximum Operating Temperature] FROM CPU'''
 
     transform_columns = ['Base Clock', 'Boost Clock', 'L1 Cache Size', 'L2 Cache Size', 'Maximum Operating Temperature', 
@@ -29,28 +29,28 @@ def consoles_prediction(year = [], database_path = '', linear_regressor_path = N
     cpu_df['Boost Clock'] = add_boost(cpu_df, 'Boost Clock')
     cpu_df['TDP'] = fill_with_mean_column(cpu_df, 'TDP')
     cpu_df['Maximum Operating Temperature'] = fill_with_mean_column(cpu_df, 'Maximum Operating Temperature')
-    cpu_df['Launch Price'] = fill_with_mean_column(cpu_df, 'Launch Price')
+    cpu_df['Launch Price ($)'] = fill_with_mean_column(cpu_df, 'Launch Price ($)')
 
 
     # Get data from GPU table
     gpu_query = '''SELECT Model, Manufacturer, [Core Base Clock] AS [Base Clock], [Core Boost Clock] AS [Boost Clock],
-    [Shading Units], [Transistors (millions)], [Memory Size], [Launch Price ($)] AS [Launch Price], [Process Size (nm)] AS [Process Size],
+    [Shading Units], [Transistors (millions)], [Memory Size], [Launch Price ($)], [Process Size (nm)] AS [Process Size],
     TDP, [Memory Bandwidth], [Memory Clock Speed (Effective)] AS [Memory Clock Speed] FROM GPU'''
 
-    transform_columns = ['Base Clock', 'Boost Clock', 'Memory Size', 'Launch Price', 'TDP', 'Memory Bandwidth', 'Memory Clock Speed']
+    transform_columns = ['Base Clock', 'Boost Clock', 'Memory Size', 'Launch Price ($)', 'TDP', 'Memory Bandwidth', 'Memory Clock Speed']
     gpu_df = get_df(db_path = db_path, db_query = gpu_query, keys = transform_columns)
 
     gpu_df['Boost Clock'] = add_boost(gpu_df, 'Boost Clock')
     gpu_df['TDP'] = fill_with_mean_column(gpu_df, 'TDP')
-    gpu_df['Launch Price'] = fill_with_mean_column(gpu_df, 'Launch Price')
+    gpu_df['Launch Price ($)'] = fill_with_mean_column(gpu_df, 'Launch Price ($)')
 
     cols_n_cpu = ['Base Clock', 'Boost Clock', 'L1 Cache Size', 'L2 Cache Size', 'Number of Cores', 'Number of Threads', 
-            'System Memory Frequency', 'Launch Price']
+            'System Memory Frequency', 'Launch Price ($)']
     cols_rev_cpu = ['Process Size', 'TDP', 'Maximum Operating Temperature']
     cpu_df['CPU Score'] = get_scores(cpu_df, scalable_columns = cols_n_cpu, scalable_columns_rev = cols_rev_cpu)
 
 
-    cols_n_gpu = ['Transistors (millions)', 'Shading Units', 'Base Clock', 'Boost Clock', 'Memory Size', 'Memory Bandwidth', 'Memory Clock Speed', 'Launch Price']
+    cols_n_gpu = ['Transistors (millions)', 'Shading Units', 'Base Clock', 'Boost Clock', 'Memory Size', 'Memory Bandwidth', 'Memory Clock Speed', 'Launch Price ($)']
     cols_rev_gpu = ['Process Size', 'TDP']
     gpu_df['GPU Score'] = get_scores(gpu_df, scalable_columns = cols_n_gpu, scalable_columns_rev = cols_rev_gpu)
 

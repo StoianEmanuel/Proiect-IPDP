@@ -91,6 +91,109 @@ def convert_unit_to_gb(size_unit, numeric_value):
         numeric_value /= 1024**3
     return numeric_value
 
+def integer_or_float_value(value):
+    if value == round(value, 1):
+        value = int(value)
+    else:
+        value = round(value, 1)
+    
+    return value
+
+
+def value_to_memory_size_unit(value):
+    nr = 0
+    while value < 1:
+        value *= 1024
+        nr += 1
+
+    value = integer_or_float_value(value)
+    if nr == 0:
+        value = str(value) + ' GB'
+    elif nr == 1:
+        value = str(value) + ' MB'
+    elif nr == 2:
+        value = str(value) + ' KB'
+    else:
+        value = str(value) + ' B'
+    
+    return value
+
+
+def value_to_clock_speed_unit(value):
+    nr = 0
+    while value < 1:
+        value *= 1000
+        nr += 1
+
+    value = integer_or_float_value(value)
+    if nr == 0:
+        value = str(value) + ' GHz'
+    elif nr == 1:
+        value = str(value) + ' MHz'
+    elif nr == 2:
+        value = str(value) + ' KHz'
+    else:
+        value = str(value) + ' Hz'
+
+    return value
+
+
+def add_string_unit(value, unit):       # W sau GB/S sau C sau MHz
+    return str(integer_or_float_value(value)) + ' ' + unit
+
+
+def value_to_density_unit(value):
+    nr = 0
+    while value < 1:
+        value *= 1000
+        nr += 1
+
+    value = integer_or_float_value(value)
+    if nr == 0:
+        value = str(value) + ' M/mm^2'
+    else:
+        value = str(value) + ' K/mm^2'
+
+    return value
+     
+
+def value_to_memory_speed_unit(value):
+    nr = 0
+    while value < 1:
+        value *= 1000
+        nr += 1
+    
+    value = integer_or_float_value(value)
+    if nr == 0:
+        value = str(value) + ' MHz'
+    elif nr == 1:
+        value = str(value) + ' KHz'
+    else:
+        value = str(value) + ' Hz'
+
+    return value
+
+
+def add_size_units_to_df_values(df: pd.DataFrame, columns):
+    for column in columns:
+        for i in range(0, len(df[column])):
+            if ('CLOCK' in column.upper() or 'FREQUENCY' not in column.upper()) and 'MEMORY' not in column.upper():
+                df.loc[i, column] = value_to_clock_speed_unit(df.loc[i, column])
+            elif 'SIZE' in column.upper():
+                df.loc[i, column] = value_to_memory_size_unit(df.loc[i, column])
+            elif 'MEMORY' in column.upper() and ('FREQUENCY' in column.upper() or 'SPEED' in column.upper()):
+                df.loc[i, column] = value_to_memory_speed_unit(df.loc[i, column])
+            elif 'DENSITY' in column.upper():
+                df.loc[i, column] = value_to_density_unit(df.loc[i, column])
+            elif 'BANDWITDH' in column.upper():
+                df.loc[i, column] = add_string_unit(df.loc[i, column], 'GB/s')
+            elif 'TEMPERATURE' in column.upper():
+                df.loc[i, column] = add_string_unit(df.loc[i, column], 'C')
+            elif 'TDP' in column.upper():
+                df.loc[i, column] = add_string_unit(df.loc[i, column], 'W')
+            
+    return df
+
 
 # Extract float from str
 def test_and_update(column: str, values):
