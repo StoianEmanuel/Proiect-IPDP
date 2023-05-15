@@ -56,11 +56,18 @@ def get_correlation(df, main_key, keys):
 # Get unit from string value
 def get_size_unit(df: pd.DataFrame):
     size_unit = []
-    pattern = re.compile('[a-zA-Z]+')
+    pattern = re.compile('[a-zA-Z]+(?:/mm\^2)?')
     for element in df.values:
         t = pattern.findall(element)
         size_unit.append(t)
     return size_unit
+
+
+# Transform K/mm^2 into M/mm^2 values
+def convert_unit_to_M_per_mm_sq(size_unit, numeric_value):
+    if size_unit == 'K/mm^2':
+        numeric_value /= 1000
+    return numeric_value
 
 
 # Transform MHz or Hz into GHz values
@@ -87,22 +94,33 @@ def convert_unit_to_gb(size_unit, numeric_value):
 
 # Extract float from str
 def test_and_update(column: str, values):
-    size_units = get_size_unit(values)                                                      # Extract the unit part
-    numeric_values = values.str.extract('(\d+\.\d+|\d+\.\d*|\.\d+|\d+)').astype(float)[0]   # Extract the numeric part
+    size_units = get_size_unit(values)                                                      # Extract unit part
+    numeric_values = values.str.extract('(\d+\.\d+|\d+\.\d*|\.\d+|\d+)').astype(float)[0]   # Extract numeric part
 
+    # if + elif to format data for some columns
     if ('CLOCK' in column.upper() or 'FREQUENCY' in column.upper()) and 'MEMORY' not in column.upper():
         converted_values = []
         for i in range(len(size_units)):
-            if size_units[i]:  # check if size_units[i] contains elements
+            if size_units[i]:
                 converted_values.append(convert_unit_to_ghz(size_units[i][0], numeric_values[i]))
             else:
                 converted_values.append(numeric_values[i])
         numeric_values = pd.DataFrame(converted_values, columns=[column])
+    
     elif 'SIZE' in column.upper():
         converted_values = []
         for i in range(len(size_units)):
-            if size_units[i]:  # check if size_units[i] contains elements
+            if size_units[i]:
                 converted_values.append(convert_unit_to_gb(size_units[i][0], numeric_values[i]))
+            else:
+                converted_values.append(numeric_values[i])
+        numeric_values = pd.DataFrame(converted_values, columns=[column])
+
+    elif 'DENSITY' in column.upper():
+        converted_values = []
+        for i in range(len(size_units)):
+            if size_units[i]:
+                converted_values.append(convert_unit_to_M_per_mm_sq(size_units[i][0], numeric_values[i]))
             else:
                 converted_values.append(numeric_values[i])
         numeric_values = pd.DataFrame(converted_values, columns=[column])
@@ -116,20 +134,17 @@ def get_df(db_path, db_query, keys = None, API_v2_col = None, API_v1_col = None)
     # Get data from db
     df = get_data(db_path = db_path, db_query = db_query)
 
-    all_keys = keys                             # Format data
+    all_keys = keys
     if API_v2_col != None:
         all_keys = all_keys + API_v2_col
     if API_v2_col != None:
         all_keys = all_keys + API_v1_col
 
     for column in chain(all_keys):
-        df[column].fillna("0", inplace=True)    # Fill empty values ("") with 0
-        if df[column].dtype == object:
+        df[column].fillna("0", inplace=True)    # Replace NaN with 0
+        if df[column].dtype == object:          # if column is different than float, int
             if any(column in cases for cases in (keys)):
-                for column in chain(keys):
-                    df[column].fillna("0", inplace=True)    # Fill empty values ("") with 0
-                    if df[column].dtype == object:
-                        df[column] = test_and_update(column, df[column])
+                df[column] = test_and_update(column, df[column])
 
             elif column in API_v2_col:
                 df[column] = df[column].str.replace('N/A', '0', regex=True)   # Replace "N/A" with "0"
@@ -147,8 +162,8 @@ def get_df(db_path, db_query, keys = None, API_v2_col = None, API_v1_col = None)
 
 # Remove unused columns from dataframe
 def remove_columns(df, keys):
-    coloane_de_sters = list(set(df.columns) - set(keys))
-    df = df.drop(columns=coloane_de_sters) 
+    drop_columns = list(set(df.columns) - set(keys))
+    df = df.drop(columns=drop_columns) 
     return df
 
 
@@ -164,36 +179,93 @@ def add_boost(df: pd.DataFrame, modify_column: str):
 
 
 # Fill with mean value where value is missing
-def fill_with_mean(df: pd.DataFrame, column: str):
-    copy = df[column].replace(0, float('nan'))   # Replace 0 with NaN
-    mean_values = copy.mean(skipna=True)        # Mean value of TDP without values NaN
-    copy = copy.fillna(mean_values)        # Replace NaN cu mean value
+def fill_with_mean_column(df: pd.DataFrame, column: str):
+    copy = df[column].replace(0, float('nan'))   # Replace 0 with NaN for an easier way of ignoring 0 values when calculating mean value
+    mean_value = copy.mean(skipna=True)        # Mean value of TDP without values NaN
+    copy = copy.fillna(mean_value)        # Replace NaN cu mean value
     return copy
 
 
+# Return DataFrame after the content of rows is filtered based on condsitions provided as argument
+def filter_values(df: pd.DataFrame, conditions = []):
+    if not conditions:
+        return df
+
+    for condition in conditions:
+        column, operator, test_values = condition[0:3]
+        if operator == '==':
+            df = df[df[column].isin(test_values)]
+        elif operator == '<':
+            df = df[df[column] < min(test_values)]   
+        elif operator == '>':
+            df = df[df[column] > max(test_values)]
+        elif operator == '!=':
+            df = df[~df[column].isin(test_values)]
+    return df
+
+
+# Return a column from a Dataframe where 0 values are replaced with mean_value of that column 
+def fill_column_with_mean_value(df: pd.DataFrame, column: str, conditions = [], cases = []):  # conditions are stored in a list and sent as an argument
+    # conditions = [ [ column_filter, operator, [values_to_compare] ], ... ]
+    # cases = [ column, [values] ]
+    copy = df
+    if not conditions:
+        aux = df[column]
+    else:
+        aux = filter_values(df, conditions)[column]
+    
+    if len(aux) == 0:
+        aux = df
+    aux = aux[column].replace(0, float('nan'))      # Replace 0 with NaN to ignore 0 values when calculating mean value
+    mean_value = aux.mean(skipna=True)              # Get mean value of column without values NaN
+    #if mean_value =
+    aux = aux.fillna(mean_value)
+    for i in range(0, len(copy[column].values)):
+        if copy.loc[i, column] == 0:
+            for test_column, values in cases:
+                if copy.loc[i, test_column] in values:
+                    m = copy[copy[test_column].isin(values)]
+                    find = m[column]
+                    break
+
+            # as putea filtra dupa un interval de ani si dupa filtru de valoare sau invers sau combinatiie
+            if find:
+                for x in find:
+                    if x:
+                        nr += 1
+                        suma += 1
+                mean_value = find.mean()
+            else:
+                m = m
+            m = copy[copy[column].isin()]
+    return aux
+
+
+# Return a DataFrame column that contains scores for items
 def get_scores(df, scalable_columns, scalable_columns_rev = None):
     # Initialize a MinMaxScaler
     scaler = MinMaxScaler()
 
     # Scale data and keep columns name
     scaled_values = scaler.fit_transform(df[scalable_columns])
-    column_names = df[scalable_columns].columns.tolist()
 
     # Build new dataframe with the new data and name
+    column_names = df[scalable_columns].columns.tolist()
     df_scaled = pd.DataFrame(scaled_values, columns=column_names)
+
+    # log10(value + 10) if value is 0 => log10(10) = 1, otherwise = -inf
     for column in scalable_columns:
         df_scaled[column] = np.log10(df[column] + 10)
     for column in scalable_columns_rev:
+        # scalable_columns_rev is used to store columns' name where score is calculated based on 1 / df[index, column]
         df_scaled[column] = np.log10(1/df[column] + 10)
-    
-    #print(df_scaled.product(axis=1).values, '\n\n')
-    #print(df_scaled.sum(axis=1).values)
 
-    return(df_scaled.product(axis=1).values)
+    return df_scaled.product(axis=1).values
 
 
 # Return Dataframe for predictions, liniar or polynomial regressor are optional
-def predicition(release_year, linear_regressor = None, poly_regressor = None, degree = 2, columns = None, lin_int_col = None, poly_int_col = None):
+def predicition(release_year, linear_regressor = None, poly_regressor = None, degree = 2, columns = None, lin_int_col = None,
+                 poly_int_col = None):
     X_release_year = np.array(release_year).reshape(-1, 1)
     concatenated_matrix = X_release_year
 
@@ -203,7 +275,6 @@ def predicition(release_year, linear_regressor = None, poly_regressor = None, de
         if lin_int_col is not None:     # if lin_int_col is used change float values for columns into int type
             linear_prediction[:, lin_int_col] = linear_prediction[:, lin_int_col].astype(int)
         concatenated_matrix = np.concatenate((concatenated_matrix, linear_prediction), axis=1)
-
 
     if poly_regressor is not None:
         poly_features = PolynomialFeatures(degree=degree)
@@ -215,7 +286,6 @@ def predicition(release_year, linear_regressor = None, poly_regressor = None, de
             poly_prediction[:, poly_int_col] = poly_prediction[:, poly_int_col].astype(int)
         concatenated_matrix = np.concatenate((concatenated_matrix, poly_prediction), axis=1)
 
-
     if linear_regressor is None and poly_regressor is None:
         return pd.DataFrame()
 
@@ -223,7 +293,7 @@ def predicition(release_year, linear_regressor = None, poly_regressor = None, de
     return df
 
 
-# Return similarity coefficient between 2 strings
+# Return similarity coefficient between 2 strings as %
 def jaccard_similarity(str1, str2):
     set1 = set(str1)
     set2 = set(str2)
@@ -231,3 +301,8 @@ def jaccard_similarity(str1, str2):
     union = len(set1.union(set2))
     similarity = intersection / union
     return similarity * 100
+
+
+# Return DataFrame with columns in the specified order 
+def reorder_columns(df, new_order):
+    return df.iloc[:, new_order]
