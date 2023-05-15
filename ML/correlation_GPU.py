@@ -1,4 +1,4 @@
-from utils import get_correlation, get_df, remove_columns, fill_with_mean, add_boost
+from utils import get_correlation, get_df, remove_columns, fill_with_mean_column, add_boost
 
 
 # modify it for a proper corelation
@@ -15,7 +15,7 @@ db_query = '''SELECT * FROM GPU WHERE [Release Year] > 1970 AND [Transistors (mi
 
 df = get_df(db_path, db_query, other_keys + main_key, API_v1_col, API_v2_col)
 df['Core Boost Clock'] = add_boost(df, 'Core Boost Clock')
-df['TDP'] = fill_with_mean(df, 'TDP')
+df['TDP'] = fill_with_mean_column(df, 'TDP')
 
 df = remove_columns(df, other_keys + API_v2_col + API_v1_col + main_key)
 

@@ -1,5 +1,12 @@
 from flask import Flask, request, jsonify
 import sqlite3, json, os
+#import numpy as np
+#from joblib import load
+import sys
+sys.path.insert(0, '../ML')
+from utils import remove_columns, reorder_columns
+from consoles_test import consoles_prediction
+from predictions import Processor
 
 app = Flask(__name__)
 # host = os.getenv('HOST', '127.0.0.1')
@@ -279,7 +286,7 @@ def get_data():
             info = get_all(datatype= "CPU",  limit = None, apply_update = True,
                             apply_filter = True, filter_conditions = filter_conditions)  # Retrieve all CPU
 
-    elif data_type == "GPU":
+    else:
         contextul = "SQLite/GPU"
         filter_conditions = [
             [	0	, "==",	"NULL",	None 	],
@@ -375,6 +382,95 @@ def get_meta():
     json_ld_doc = json.dumps(data, indent=4)
 
     # Return response in JSON-LD format
+    response = app.response_class(
+        response=json_ld_doc, status=200, mimetype="application/ld+json"
+    )
+    return response
+
+
+@app.route("/get_prediction")
+def get_data_for_ML():
+
+    data_type = request.args.get("data_type")
+    print(data_type,'\n\n')
+    valid_data_types = ["consoles", "CPU", "GPU"]
+    years = request.args.get("years")
+
+    # Check if data_type is valid
+    if data_type not in valid_data_types:
+        error_response = {"error": "Invalid data type"}
+        return jsonify(error_response), 400
+
+    # Check if years parameter is provided
+    if not years:
+        error_response = {"error": "years parameter is missing"}
+        return jsonify(error_response), 400
+    
+    numbers = years.split(',')
+    years_int = []
+
+    if data_type == "consoles":
+        contextul = "SQLite/consoles"
+        for number in numbers:
+            n = int(number)
+            if 1990 <= n <= 2030:
+                years_int.append(n)
+
+        years_int = sorted(years_int)
+        df = consoles_prediction(years_int, database_path = '../Data/gaming.sqlite', linear_regressor_path = '../ML/consoles_linear_regressor.joblib',
+                                  polynomial_regressor_path = '../ML/consoles_poly_regressor.joblib')
+        columns = ['Release Year', 'GPU Equivalent', 'Base Clock', 'RAM Size', 'RAM Frequency', 'Number of Exclusives',
+                'Units Sold (millions)', 'CPU Equivalent', 'Launch Price']
+        df = reorder_columns(df, [0, 6, 5, 7, 2, 1, 3, 4, 8])
+        info = df.to_dict(orient='records')
+
+    elif data_type == "GPU":
+        contextul = "SQLite/GPU"
+        for number in numbers:
+            n = int(number)
+            if 1990 <= n <= 2030:
+                years_int.append(n)
+
+        years_int = sorted(years_int)
+        gpu_processor = Processor(linear_regressor_file = '../ML/GPU_linear_regressor.joblib',
+                poly_regressor_file = '../ML/GPU_poly_regressor.joblib',
+                year = years_int,
+                columns = ['Release Year', 'Transistors (millions)', 'Process Size (nm)', 'TDP (W)', 'Core Base Clock (GHz)', 'Core Boost Clock (GHz)',
+                           'Memory Bandwidth (GB/s)', 'Shading Units', 'Memory Size (GB)', 'Memory Clock Speed (MHz)', 'Launch Price ($)'],
+                lin_int_col  = [0, 1, 2],
+                poly_int_col = [0, 2, -1],
+                degree = 2)
+        # Metoda predict pentru GPU
+        gpu_processor.read_data()
+        df = gpu_processor.get_df()
+        df = reorder_columns(df, [0, 1, 2, 7, 4, 5, 8, 6, 9, 3, 10])
+        info = df.to_dict(orient='records')
+    else:
+        contextul = "SQLite/CPU"
+        for number in numbers:
+            n = int(number)
+            if 1990 <= n <= 2030:
+                years_int.append(n)
+
+        years_int = sorted(years_int)
+        cpu_processor = Processor(linear_regressor_file = '../ML/CPU_linear_regressor.joblib',
+                poly_regressor_file = '../ML/CPU_poly_regressor.joblib',
+                year = years_int,
+                columns = ['Release Year', 'Process Size (nm)', 'TDP', 'Base Clock', 'Boost Clock', 'L1 Cache Size', 'L2 Cache Size',
+                    'Maximum Operating Temperature', 'Number of Cores', 'Number of Threads', 'System Memory Frequency', 'Launch Price ($)'],
+                lin_int_col  = [0, 1, 2],
+                poly_int_col = [0, 2, -1],
+                degree = 2)
+        # Metoda predict pentru GPU
+        cpu_processor.read_data()
+        df = cpu_processor.get_df()
+        df = reorder_columns(df, [0, 1, 8, 9, 3, 4, 5, 6, 10, 2, 7, 11])
+        info = df.to_dict(orient='records')
+
+    context = {"@schema": contextul}
+    data = {"@context": context, "@list": info}
+    json_ld_doc = json.dumps(data, indent=4)
+
     response = app.response_class(
         response=json_ld_doc, status=200, mimetype="application/ld+json"
     )

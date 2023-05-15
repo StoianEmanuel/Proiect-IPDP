@@ -1,4 +1,4 @@
-from utils import get_correlation, remove_columns, get_df, fill_with_mean, add_boost
+from utils import get_correlation, remove_columns, get_df, fill_with_mean_column, add_boost, fill_column_with_mean_value
 
 
 # modify it for a proper corelation
@@ -13,9 +13,11 @@ db_query = '''SELECT * FROM CPU WHERE [Release Year] > 1970 AND [Process Size (n
 keys = main_key + other_keys
 
 df = get_df(db_path, db_query, keys)
+print(df.columns)
 df['Boost Clock'] = add_boost(df, 'Boost Clock')
-df['TDP'] = fill_with_mean(df, 'TDP')
-df['Maximum Operating Temperature'] = fill_with_mean(df, 'Maximum Operating Temperature')
+df['TDP'] = fill_with_mean_column(df, 'TDP')
+df['TDP'] = fill_column_with_mean_value(df, 'TDP', [])
+df['Maximum Operating Temperature'] = fill_with_mean_column(df, 'Maximum Operating Temperature')
 df = remove_columns(df, keys)
 
 print(main_key[0]+':\n', get_correlation(df, main_key = main_key[0], keys = other_keys))

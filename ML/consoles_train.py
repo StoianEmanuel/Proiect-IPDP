@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import math
-from utils import add_boost, fill_with_mean, get_df, jaccard_similarity, get_scores
+from utils import add_boost, fill_with_mean_column, get_df, jaccard_similarity, get_scores, fill_column_with_mean_value
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures, SplineTransformer
 from joblib import dump
@@ -29,21 +29,21 @@ transform_columns = ['Base Clock', 'Boost Clock', 'L1 Cache Size', 'L2 Cache Siz
 cpu_df = get_df(db_path = db_path, db_query = cpu_query, keys = transform_columns)
 
 cpu_df['Boost Clock'] = add_boost(cpu_df, 'Boost Clock')
-cpu_df['TDP'] = fill_with_mean(cpu_df, 'TDP')
-cpu_df['Maximum Operating Temperature'] = fill_with_mean(cpu_df, 'Maximum Operating Temperature')
+cpu_df['TDP'] = fill_with_mean_column(cpu_df, 'TDP')
+cpu_df['Maximum Operating Temperature'] = fill_with_mean_column(cpu_df, 'Maximum Operating Temperature')
 
 
 # Get data from GPU table
 gpu_query = '''SELECT Model, Manufacturer, [Core Base Clock] AS [Base Clock], [Core Boost Clock] AS [Boost Clock],
  [Shading Units], [Transistors (millions)], [Memory Size], [Launch Price ($)] AS [Launch Price], [Process Size (nm)] AS [Process Size],
- TDP, [Memory Bandwidth], [Memory Clock Speed (Effective)] AS [Memory Clock Speed] FROM GPU'''
+ TDP, [Memory Bandwidth], [Memory Clock Speed (Effective)] AS [Memory Clock Speed], [Integration Density] FROM GPU'''
 
-transform_columns = ['Base Clock', 'Boost Clock', 'Memory Size', 'Launch Price', 'TDP', 'Memory Bandwidth', 'Memory Clock Speed']
+transform_columns = ['Base Clock', 'Boost Clock', 'Memory Size', 'Launch Price', 'TDP', 'Memory Bandwidth', 'Memory Clock Speed', 'Integration Density']
 gpu_df = get_df(db_path = db_path, db_query = gpu_query, keys = transform_columns)
 
 gpu_df['Boost Clock'] = add_boost(gpu_df, 'Boost Clock')
-gpu_df['TDP'] = fill_with_mean(gpu_df, 'TDP')
-
+gpu_df['TDP'] = fill_with_mean_column(gpu_df, 'TDP')
+gpu_df['Integration Density'] = fill_with_mean_column(gpu_df, 'Integration Density')
 
 cols_n_cpu = ['Base Clock', 'Boost Clock', 'L1 Cache Size', 'L2 Cache Size', 'Number of Cores', 'Number of Threads', 
         'System Memory Frequency', 'Launch Price']
@@ -52,7 +52,7 @@ cpu_df['CPU Score'] = get_scores(cpu_df, scalable_columns = cols_n_cpu, scalable
 
 
 cols_n_gpu = ['Transistors (millions)', 'Shading Units', 'Base Clock', 'Boost Clock', 'Memory Size', 'Memory Bandwidth',
-               'Memory Clock Speed', 'Launch Price']
+               'Memory Clock Speed', 'Launch Price', 'Integration Density']
 cols_rev_gpu = ['Process Size', 'TDP']
 gpu_df['GPU Score'] = get_scores(gpu_df, scalable_columns = cols_n_gpu, scalable_columns_rev = cols_rev_gpu)
 
@@ -85,7 +85,7 @@ for i in range(0, console_df.shape[1], 3):
     print(console_df.iloc[:, i:i+3])
 
 for column in console_df.columns:
-    if column != 'Consoles Name' and column != 'Release Year' and column != 'CPU Name' and column != 'GPU Name' and column != 'Base Clock' and column != 'RAM Size' and column != 'RAM Frequency':
+    if 'Name' not in column and column != 'Release Year' and column != 'Base Clock' and 'RAM' not in column:
         console_df[column] = np.log(console_df[column] + math.e)
 
 console_df['Base Clock'] = np.log(console_df['Base Clock'])
