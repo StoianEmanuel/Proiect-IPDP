@@ -44,39 +44,31 @@ def get_meta_data(db_path = "./Data/gaming.sqlite"):
     metadata = {}
 
     for table_name in table_names:
+
         # get metadata for every table
         column_data = get_column_data(db_path, table_name)
+        change_table_name = table_name
 
-        if table_name  in ['platform_mappings', 'sqlite_sequence']:
+        if change_table_name  in ['platform_mappings', 'sqlite_sequence']:
             continue
         
-        if table_name == "Consoles":
+        if change_table_name == "Consoles":
             column_data = column_data.replace(',Launch Price ($)', '')
-        elif table_name == "GPU":
+        elif change_table_name == "GPU":
             column_data = column_data.replace('Integration Density,', '')
-        elif table_name == "VideoGames":
-            table_name == "video_games"
 
-        if table_name not in ['CPU', 'GPU']:
-            table_name = table_name[0].lower() + table_name[1:]
-        metadata[table_name] = column_data
+        if change_table_name == "VideoGames":
+            change_table_name = "video_games"
 
-    # Crează documentul JSON-LD
+        if change_table_name not in ['CPU', 'GPU', 'video_games']:
+            change_table_name = change_table_name[0].lower() + change_table_name[1:]
+        
+        metadata[change_table_name] = column_data
+
+    # Create JSON-LD document
     context = {"@schema": "SQLite"}
     data = {"@context": context, **metadata}
     json_ld_doc = json.dumps(data, indent=4)
-
-    # Create JSON-LD document
-    '''context = {"@schema": "SQLite"}
-    data = {
-        "@context": context,
-        "video_games": meta1,
-        "consoles": meta2,
-        "mice": meta3,
-        "CPU": meta4,
-        "GPU": meta5,
-    }
-    json_ld_doc = json.dumps(data, indent=4)'''
 
     # Return response in JSON-LD format
 
