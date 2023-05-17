@@ -11,13 +11,12 @@ db_query = '''SELECT * FROM GPU WHERE [Release Year] > 1989 AND [Transistors (mi
             AND [Memory Clock Speed (Effective)] IS NOT NULL AND [TDP] IS NOT NULL AND [Launch Price ($)] > 0'''
 
 # Define set of columns from db of string or integer values
-string_col   = ['Core Base Clock', 'Core Boost Clock', 'Memory Clock Speed (Effective)', 'Memory Bandwidth', 'Memory Size', 'TDP',
-                    'Integration Density']
-real_col         = ['Release Year', 'Shading Units', 'Transistors (millions)', 'Process Size (nm)', 'Launch Price ($)']
+string_col  = ['Core Base Clock', 'Core Boost Clock', 'Memory Clock Speed (Effective)', 'Memory Bandwidth', 'Memory Size', 'TDP',
+                'Integration Density']
+real_col    = ['Release Year', 'Shading Units', 'Transistors (millions)', 'Process Size (nm)', 'Launch Price ($)']
 
 df = get_df(db_path, db_query, string_col, None, None)
 df['Core Boost Clock'] = add_boost(df, 'Core Boost Clock')
-#print(df[['Release Year', 'Integration Density']].values)
 
 # Remove unused columns
 keys = string_col + real_col
@@ -34,7 +33,7 @@ y_linear  = df[['Transistors (millions)', 'Process Size (nm)', 'TDP', 'Core Base
                 'Memory Bandwidth', 'Memory Size']].values
 y_poly = df[['Integration Density', 'Shading Units', 'Memory Clock Speed (Effective)', 'Launch Price ($)']].values
 
-# Polynomial regression for 'Shading Units', 'Memory Size', 'Memory Clock Speed', Launch Price ($)
+# Polynomial regression for y_poly columns
 poly_features = PolynomialFeatures(degree = 2)
 X_poly = poly_features.fit_transform(X)
 poly_regressor = LinearRegression()

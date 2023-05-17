@@ -1,40 +1,85 @@
 from joblib import load
 from matplotlib import pyplot as plt
 import pandas as pd
-from utils import predicition, get_df, add_boost, remove_columns
-from sklearn.metrics import mean_squared_error
+from utils import predicition, get_df, add_boost, remove_columns        #ML.utils
+
 
 class Processor:
-    def __init__(self, linear_regressor_file, poly_regressor_file, year, columns, lin_int_col, poly_int_col, degree,
-                 db_path, db_query, string_columns):
-        self.linear_regressor = load(linear_regressor_file)
-        self.poly_regressor = load(poly_regressor_file)
+    def __init__(self,  year, columns, linear_regressor_file = None, lin_int_col = None, 
+                 poly_regressor_file1 = None, poly_int_col1 = None, degree1 = None,
+                 poly_regressor_file2 = None, poly_int_col2 = None, degree2 = None,
+                 db_path = None, db_query = None, string_columns = None, reduce_size = True):
         self.year = year
         self.columns = columns
+
+        if linear_regressor_file:
+            self.linear_regressor = load(linear_regressor_file)
+        else:
+            self.linear_regressor = None
+        
+        if poly_regressor_file1:
+            self.poly_regressor1  = load(poly_regressor_file1)
+        else:
+            self.poly_regressor1 = None
+        
+        if poly_regressor_file2:
+            self.poly_regressor2  = load(poly_regressor_file2)
+        else:
+            self.poly_regressor2 = None
+
         self.lin_int_col = lin_int_col
-        self.poly_int_col = poly_int_col
-        self.degree = degree
+        self.poly_int_col1 = poly_int_col1
+        self.degree1 = degree1
+
+        self.poly_int_col2 = poly_int_col2
+        self.degree2 = degree2
+
         self.predicted_df = None
-        self.original_df = get_df(db_path, db_query, string_columns, None, None)
-        self.original_df = remove_columns(self.original_df, columns)
+
+        if db_path and db_query:
+            self.original_df = get_df(db_path, db_query, string_columns, None, None)
+            if reduce_size:
+                self.original_df = remove_columns(self.original_df, columns)
+        else:
+            self.original_df = pd.DataFrame()
 
 
+    # Make predictions
     def read_data(self):
-        self.predicted_df = predicition(release_year=self.year, linear_regressor=self.linear_regressor, poly_regressor=self.poly_regressor,
-                         degree=self.degree, columns=self.columns, lin_int_col=self.lin_int_col, poly_int_col = self.poly_int_col)
 
+        self.predicted_df = predicition(release_year=self.year, columns=self.columns, 
+                                        linear_regressor=self.linear_regressor, lin_int_col=self.lin_int_col,
+                                        poly_regressor1 = self.poly_regressor1, poly_degree1 = self.degree1, poly_int_col1 = self.poly_int_col1,
+                                        poly_regressor2 = self.poly_regressor2, poly_degree2 = self.degree2, poly_int_col2 = self.poly_int_col2)
 
+    # Possibilty that i won't need 
     def get_df(self):
         return self.predicted_df
 
-    
+
+    # Print predicted or original (data from database)
+    def print_data(self, data_type=''):
+        if data_type == 'predicted':
+            print('Predicted data:\n')
+            for i in range(0, self.predicted_df.shape[1], 3):
+                pd.options.display.max_rows = None
+                print(self.predicted_df.iloc[:, i:i+3], '\n')
+
+        elif data_type == 'original':
+            print('Original data:\n')
+            for i in range(0, self.original_df.shape[1], 3):
+                pd.options.display.max_rows = None
+                print(self.original_df.iloc[:, i:i+3], '\n')
+
+
+    # Fill "Boost Clock" column of original dataframe with "Base Clock" where "Boost Clock" is ''
     def add_boost_clock(self, column):
         self.original_df[column] = add_boost(self.original_df, column)
 
 
-    def export_mse_to_csv(self, remove_from_df_rows = [], output_path = './predition.txt', merge_column = 'Release Year'):
+    # Export mse value for prediction to 
+    def export_mse_to_file(self, remove_from_df_rows = [], output_path = './predition.txt', merge_column = 'Release Year'):
         # Remove specified rows from original_df
-        #print(self.original_df.shape, self.predicted_df.shape)
         original_df_aux = self.original_df
         predicted_df_aux = self.predicted_df
 
@@ -43,10 +88,11 @@ class Processor:
                 original_df_aux = original_df_aux[~original_df_aux[column].isin(remove_list_values)]
                 predicted_df_aux = predicted_df_aux[~predicted_df_aux[column].isin(remove_list_values)]
         
-        # remove data that can't be used and sort rows by merge_column values
+        # Remove data that will not be used and sort rows by merge_column values
         original_df_aux = original_df_aux[original_df_aux[merge_column].isin(predicted_df_aux[merge_column].values)]
         original_df_aux = original_df_aux.sort_values(merge_column).reset_index(drop = True)
         predicted_df_aux = predicted_df_aux.sort_values(merge_column).reset_index(drop = True)
+        
         # Calculate Mean Squared Error (MSE) for each column
         mse_dict = {}
         mse_total = 0
@@ -55,10 +101,10 @@ class Processor:
         m = len(original_df_aux[merge_column].values)
 
         for column in self.columns:
-
             if column != merge_column:
                 mse_i = 0
                 nr = 0
+
                 for i in range(0, n):
                     for j in range(l, m):
                         if predicted_df_aux.loc[i, merge_column] == original_df_aux.loc[j, merge_column]:
@@ -67,10 +113,11 @@ class Processor:
                             mse_i += (predicted_df_aux.loc[i, column] - original_df_aux.loc[j, column])**2
                         else:
                             break
+                
                 if nr != 0:
                     mse_i /= nr
+                
                 l = 0
-                #mse = mean_squared_error(original_df_aux[column], predicted_df_aux[column])
                 mse_dict[column] = mse_i
                 mse_total += mse_i
         
@@ -78,11 +125,19 @@ class Processor:
             f.write('Column,MSE\n')
             for column, mse in mse_dict.items():
                 f.write(f'{column}={mse}\n')
-
             f.write(f'\nTotal MSE={mse_total}\n')
-            f.write(f'Polynomial Regression Degree={self.degree}')
+
+            if self.linear_regressor:
+                f.write(f'Linear Regression\n')
+            
+            if self.poly_regressor1:
+                f.write(f'Polynomial Regression, Degree={self.degree1}\n')
+            
+            if self.poly_regressor2:
+                f.write(f'Polynomial Regression, Degree={self.degree2}')
     
 
+    # Display graphs for a set of columns with merge_column as X axis
     def get_graphs(self, columns, merge_column = 'Release Year'):
         # Generate plots for each column
         for column in columns:
@@ -94,59 +149,3 @@ class Processor:
             plt.xlabel(merge_column)
             plt.ylabel(column)
             plt.show()
-
-
-def prediction_cpu(years = [1990, 1996, 1999, 2000, 2001, 2002, 2005, 2009, 2010, 2012, 2015, 2020, 2021, 2023, 2025, 2027, 2030]):
-    cpu_processor = Processor (linear_regressor_file = './ML/CPU_linear_regressor.joblib',
-                    poly_regressor_file = './ML/CPU_poly_regressor.joblib',
-                    year = years,
-                    columns = ['Release Year', 'Process Size (nm)', 'TDP', 'Base Clock', 'Boost Clock', 'L1 Cache Size', 'L2 Cache Size',
-                        'Maximum Operating Temperature', 'Number of Cores', 'Number of Threads', 'System Memory Frequency', 'Launch Price ($)'],
-                    lin_int_col = [0, 1],
-                    poly_int_col = [0, 1, 2, 3],
-                    degree = 10,
-                    db_path = './Data/gaming.sqlite',
-                    db_query = '''SELECT * FROM CPU WHERE [Release Year] > 1970 AND [Process Size (nm)] > 0 AND [Base Clock] IS NOT NULL AND [L1 Cache Size] 
-IS NOT NULL AND [System Memory Frequency] IS NOT NULL AND [Number of Cores] > 0 AND [Launch Price ($)] > 0 AND [Maximum Operating Temperature]
-IS NOT NULL AND [TDP] IS NOT NULL''',
-                    string_columns = ['Base Clock', 'Boost Clock', 'L1 Cache Size', 'L2 Cache Size', 'Maximum Operating Temperature',
-                    'System Memory Frequency', 'TDP'])
-    
-    cpu_processor.read_data()
-    cpu_processor.add_boost_clock('Boost Clock')
-
-    cpu_processor.get_graphs(['Process Size (nm)', 'TDP', 'Base Clock', 'Boost Clock', 'L1 Cache Size', 'L2 Cache Size',
-                       'Maximum Operating Temperature', 'Number of Cores', 'Number of Threads', 'System Memory Frequency', 'Launch Price ($)'])
-    
-    cpu_processor.export_mse_to_csv(output_path = './ML/predition_cpu.txt', merge_column = 'Release Year')
-    # grafic real / estimated + metrica 
-    # spline vs poly vs lin
-    # json -- data returned
-
-
-def prediction_gpu(years = [1990, 1996, 1999, 2000, 2001, 2002, 2005, 2009, 2010, 2012, 2015, 2020, 2021, 2023, 2025, 2027, 2030]):
-    gpu_processor = Processor (linear_regressor_file = './ML/GPU_linear_regressor.joblib',
-                    poly_regressor_file = './ML/GPU_poly_regressor.joblib',
-                    year = years,
-                    columns = ['Release Year', 'Transistors (millions)', 'Process Size (nm)', 'TDP', 'Core Base Clock', 'Core Boost Clock',
-            'Memory Bandwidth', 'Memory Size', 'Integration Density', 'Shading Units', 'Memory Clock Speed (Effective)', 'Launch Price ($)'],
-                    lin_int_col  = [0, 2],
-                    poly_int_col = [1, 2, 3],
-                    degree = 2,
-                    db_path = './Data/gaming.sqlite',
-                    db_query = '''SELECT * FROM GPU WHERE [Release Year] > 1989 AND [Transistors (millions)] > 0 AND [Integration Density] 
-                    IS NOT NULL AND [Process Size (nm)] > 0 AND [Core Base Clock] IS NOT NULL AND [Memory Size] IS NOT NULL AND 
-                    [Memory Bandwidth] IS NOT NULL AND [Memory Clock Speed (Effective)] IS NOT NULL AND [TDP] IS NOT NULL AND [Launch Price ($)] > 0''',
-                    string_columns = ['Core Base Clock', 'Core Boost Clock', 'Memory Clock Speed (Effective)', 'Memory Bandwidth', 'Memory Size', 'TDP',
-                    'Integration Density'])
-    gpu_processor.read_data()
-    gpu_processor.add_boost_clock('Core Boost Clock')
-    
-    gpu_processor.get_graphs(['Transistors (millions)', 'Process Size (nm)', 'TDP', 'Core Base Clock', 'Core Boost Clock',
-            'Memory Bandwidth', 'Memory Size', 'Integration Density', 'Shading Units', 'Memory Clock Speed (Effective)', 'Launch Price ($)'])
-    
-    gpu_processor.export_mse_to_csv(output_path = './ML/predition_gpu.txt', merge_column = 'Release Year')
-
-#prediction_cpu()
-
-prediction_gpu()

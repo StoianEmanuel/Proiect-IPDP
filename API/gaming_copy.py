@@ -1,12 +1,12 @@
 from flask import Flask, request, jsonify
 import sqlite3, json, os
-#import numpy as np
-#from joblib import load
 import sys
 sys.path.insert(0, './ML')
 from utils import remove_columns, reorder_columns, add_size_units_to_df_values
 from consoles_test import consoles_prediction
 from predictions import Processor
+from delete_methods import delete_item_by_model_and_manufacturer, delete_item_by_id
+from meta_method import get_meta_data
 
 app = Flask(__name__)
 host = os.getenv("HOST", "127.0.0.1")
@@ -140,31 +140,27 @@ def update_data_using_query(data, query_set):
     column_table1, desired_column, table, column_table2 = query_set[0:4]
     for element in data:
         cursor = conn.cursor()
-        
-        # Get the current value of the specified column for the element
-        current_value = element[column_table1]
+        current_value = element[column_table1]  # Get the current value of the specified column for the element
+
         # Construct the SELECT query using the specified table, column and value
         query_string = f"SELECT {desired_column} FROM {table} WHERE {column_table2} = ?"
         cursor.execute(query_string, (current_value,))
         query_result = cursor.fetchone()
+
         if query_result:
-            # If the query returned a result, update the current value of the column for the element
             element[column_table1] = query_result[0]
         else:
-            # If the query did not return a result, keep the current value of the column for the element
             element[column_table1] = current_value
         cursor.close()
     conn.close()
     return data
 
 
-# Define the route to retrieve all games/consoles/mice/CPU
+# Define the route to retrieve all games/consoles/mice/CPU/GPU
 @app.route("/get_data", methods=["GET"])
 def get_data():
-    # Check if data_type is set to either games or consoles
     data_type = request.args.get("data_type")
     snippet = request.args.get("snippet")
-    # Define the valid data types
     valid_data_types = ["mice", "consoles", "video_games", "CPU", "GPU"]
 
     # Check if data_type is valid
@@ -195,20 +191,19 @@ def get_data():
             [	12	, "==",	"NULL",	None    ]
         ]
 
-        extra_updates = [         # updates that does not count for integrity conditions
+        extra_updates = [
             [	10	, "==" , "NULL" , None ] 
         ]
         if snippet == "true":
             info = get_all(datatype= "consoles",  limit = 20, apply_update = True, apply_filter = True,
-                            filter_conditions = filter_conditions, extra_updates = extra_updates)  # Retrieve first 20 consoles
+                            filter_conditions = filter_conditions, extra_updates = extra_updates)
         else:
             info = get_all(datatype= "consoles",  limit = None, apply_update = True, apply_filter = True,
-                            filter_conditions = filter_conditions, extra_updates = extra_updates)  # Retrieve all consoles
-        #print(info)
+                            filter_conditions = filter_conditions, extra_updates = extra_updates)
+
         columns_to_remove = ['Launch Price ($)']
         info = remove_columns(info, columns_to_remove)
         
-
     elif data_type == "video_games":
         contextul = "SQLite/video_games"
         filter_conditions = [      # define conditions
@@ -224,10 +219,10 @@ def get_data():
         ]
         if snippet == "true":
             info = get_all(datatype= "videogames",  limit = 20, apply_update = True, apply_filter = True,
-                            filter_conditions = filter_conditions)  # Retrieve first 20 mice
+                            filter_conditions = filter_conditions)
         else:
             info = get_all(datatype= "videogames",  limit = None, apply_update = True, apply_filter = True,
-                            filter_conditions = filter_conditions)  # Retrieve all mice
+                            filter_conditions = filter_conditions)
 
         query_set = ['Platform', 'console_platform', 'platform_mappings', 'game_platform']
         info = update_data_using_query(info, query_set)     # Use query to replace data from info[] with the one from the query
@@ -251,11 +246,10 @@ def get_data():
         ]
         if snippet == "true":
             info = get_all(datatype= "mice",  limit = 20, apply_update = True, apply_filter = True,
-                            filter_conditions = filter_conditions)  # Retrieve first 20 mice
+                            filter_conditions = filter_conditions)
         else:
             info = get_all(datatype= "mice",  limit = None, apply_update = True, apply_filter = True,
-                            filter_conditions = filter_conditions)  # Retrieve all mice
-
+                            filter_conditions = filter_conditions)
 
     elif data_type == "CPU":
         contextul = "SQLite/CPU"
@@ -281,10 +275,10 @@ def get_data():
         ]
         if snippet == "true":
             info = get_all(datatype= "CPU",  limit = 20, apply_update = True, apply_filter = True,
-                            filter_conditions = filter_conditions)  # Retrieve first 20 CPU
+                            filter_conditions = filter_conditions)
         else:
             info = get_all(datatype= "CPU",  limit = None, apply_update = True, apply_filter = True,
-                            filter_conditions = filter_conditions)  # Retrieve all CPU
+                            filter_conditions = filter_conditions)
 
     else:
         contextul = "SQLite/GPU"
@@ -316,13 +310,12 @@ def get_data():
         ]
         if snippet == "true":
             info = get_all(datatype= "GPU",  limit = 20, apply_update = True, apply_filter = True,
-                            filter_conditions = filter_conditions)  # Retrieve first 20 GPU
+                            filter_conditions = filter_conditions)
         else:
             info = get_all(datatype= "GPU",  limit = None, apply_update = True, apply_filter = True,
-                            filter_conditions = filter_conditions)  # Retrieve all GPU
+                            filter_conditions = filter_conditions)
         columns_to_remove = ['Integration Density']
         info = remove_columns(info, columns_to_remove)
-
 
     # Return response in JSON-LD format
     context = {"@schema": contextul}
@@ -335,59 +328,14 @@ def get_data():
     return response
 
 
-def get_column_data(table_name):
-    conn = sqlite3.connect("./Data/gaming.sqlite")
-    # Define the SQL query to retrieve column names
-    sql_query = f"PRAGMA table_info({table_name})"
-    # Execute the query and retrieve the results
-    cursor = conn.cursor()
-    cursor.execute(sql_query)
-    results = cursor.fetchall()
-    col_names = [result[1] for result in results]
-    # Join the column names with commas and print the resulting string
-    meta = ",".join(col_names)
-    conn.close()
-    return meta
-
-
 # Method to get meta for the database
-@app.route("/get_meta")
+@app.route("/get_meta", methods = ['GET'])
 def get_meta():
-    table_name1 = "videogames"
-    table_name2 = "consoles"
-    table_name3 = "mice"
-    table_name4 = "CPU"
-    table_name5 = "GPU"
-
-    meta1 = get_column_data(table_name1)
-    meta2 = get_column_data(table_name2)
-    meta3 = get_column_data(table_name3)
-    meta4 = get_column_data(table_name4)
-    meta5 = get_column_data(table_name5)
-
-    # stergerea celor 2 coloane pentru a nu fi necesare schimbari asupra platformei  
-    meta2 = meta2.replace(',Launch Price ($)', '')
-    meta5 = meta5.replace('Integration Density,', '')
-
-    # Create JSON-LD document
-    context = {"@schema": "SQLite"}
-    data = {
-        "@context": context,
-        "video_games": meta1,
-        "consoles": meta2,
-        "mice": meta3,
-        "CPU": meta4,
-        "GPU": meta5,
-    }
-    json_ld_doc = json.dumps(data, indent=4)
-
-    # Return response in JSON-LD format
-    response = app.response_class(
-        response=json_ld_doc, status=200, mimetype="application/ld+json"
-    )
+    response = get_meta_data("./Data/gaming.sqlite")
     return response
 
 
+# Define the route to retrieve predictions for consoles/CPU/GPU
 @app.route("/get_prediction")
 def get_data_for_ML():
 
@@ -413,18 +361,19 @@ def get_data_for_ML():
         contextul = "SQLite/consoles"
         for number in numbers:
             n = int(number)
-            if 1990 <= n <= 2030:
+            if 1985 <= n <= 2030:
                 years_int.append(n)
 
         years_int = sorted(set(years_int))
         years_int = list(years_int)
 
-        df = consoles_prediction(years_int, database_path = './Data/gaming.sqlite', linear_regressor_path = './ML/consoles_linear_regressor.joblib',
-                                  polynomial_regressor_path = './ML/consoles_poly_regressor.joblib')
-        columns = ['Release Year', 'GPU Equivalent', 'Base Clock', 'RAM Size', 'RAM Frequency', 'Number of Exclusives',
-                'Units Sold (millions)', 'CPU Equivalent', 'Launch Price ($)']
+        df = consoles_prediction(years = years_int, database_path = './Data/gaming.sqlite',
+                                 linear_regressor_path = './ML/consoles_linear_regressor.joblib',
+                                 polynomial_regressor_path1 = './ML/consoles_poly_regressor1.joblib', poly_degree1 = 2,
+                                 polynomial_regressor_path2 = './ML/consoles_poly_regressor2.joblib', poly_degree2 = 7)
+        
         df = reorder_columns(df, [0, 6, 5, 7, 2, 1, 3, 4, 8])
-        df = add_size_units_to_df_values(df, columns = ['RAM Size', 'RAM Frequency'])
+
         info = df.to_dict(orient='records')
 
     elif data_type == "GPU":
@@ -437,47 +386,88 @@ def get_data_for_ML():
         years_int = sorted(set(years_int))
         years_int = list(years_int)
 
-        gpu_processor = Processor(linear_regressor_file = './ML/GPU_linear_regressor.joblib',
-                poly_regressor_file = './ML/GPU_poly_regressor.joblib',
-                year = years_int,
-                columns = ['Release Year', 'Transistors (millions)', 'Process Size (nm)', 'TDP', 'Core Base Clock', 'Core Boost Clock',
-            'Memory Bandwidth', 'Memory Size', 'Integration Density', 'Shading Units', 'Memory Clock Speed (Effective)', 'Launch Price ($)'],
-                lin_int_col  = [0, 1, 2],
-                poly_int_col = [0, 2, -1],
-                degree = 2)
-        # Metoda predict pentru GPU
+
+        gpu_processor = Processor( year = years_int,
+                    linear_regressor_file = './ML/GPU_linear_regressor.joblib',
+                    lin_int_col  = [0, 2],
+
+                    poly_regressor_file1 = './ML/GPU_poly_regressor.joblib',
+                    poly_int_col1 = [1, 2, 3],
+                    degree1 = 2,
+                    
+                    columns = ['Release Year', 'Transistors (millions)', 'Process Size (nm)', 'TDP', 'Core Base Clock', 
+                                'Core Boost Clock', 'Memory Bandwidth', 'Memory Size', 'Integration Density', 'Shading Units',
+                                'Memory Clock Speed (Effective)', 'Launch Price ($)'],
+                    
+                    db_path = './Data/gaming.sqlite',
+                    db_query = '''SELECT * FROM GPU WHERE [Release Year] > 1989 AND [Transistors (millions)] > 0 AND [Integration Density] 
+                    IS NOT NULL AND [Process Size (nm)] > 0 AND [Core Base Clock] IS NOT NULL AND [Memory Size] IS NOT NULL AND 
+                    [Memory Bandwidth] IS NOT NULL AND [Memory Clock Speed (Effective)] IS NOT NULL AND [TDP] IS NOT NULL AND [Launch Price ($)] > 0''',
+
+                    string_columns = ['Core Base Clock', 'Core Boost Clock', 'Memory Clock Speed (Effective)', 'Memory Bandwidth', 
+                                      'Memory Size', 'TDP', 'Integration Density'])
+        
         gpu_processor.read_data()
-        df = gpu_processor.get_df()
-        df = reorder_columns(df, [0, 1, 2, 8, 7, 4, 5, 9, 6, 10, 3, 11])
-        df = add_size_units_to_df_values(df, columns = ['TDP', 'Core Base Clock', 'Core Boost Clock',
-            'Memory Bandwidth', 'Memory Size', 'Integration Density', 'Memory Clock Speed (Effective)'])
+
+        df = gpu_processor.predicted_df
+        df = reorder_columns(df, [0, 1, 2, 8, 7, 4, 5, 9, 6, 10, 3, 11])    # fara 8
+
+        columns_to_update = ['TDP', 'Core Base Clock', 'Core Boost Clock', 'Memory Bandwidth', 'Memory Size', 
+                             'Integration Density', 'Memory Clock Speed (Effective)']
+        df = add_size_units_to_df_values(df, columns_to_update)
+        for column in df.columns:
+            if column not in columns_to_update:
+                df[column] = df[column].astype(int)
+
         info = df.to_dict(orient='records')
+
     else:
         contextul = "SQLite/CPU"
         for number in numbers:
             n = int(number)
-            if 1990 <= n <= 2030:
+            if 1975 <= n <= 2030:
                 years_int.append(n)
 
         years_int = sorted(set(years_int))
         years_int = list(years_int)
         
-        cpu_processor = Processor(linear_regressor_file = './ML/CPU_linear_regressor.joblib',
-                poly_regressor_file = './ML/CPU_poly_regressor.joblib',
+        cpu_processor = Processor(
                 year = years_int,
+                linear_regressor_file = './ML/CPU_linear_regressor.joblib',
+                lin_int_col = [0, 1],
+
+                poly_regressor_file1 = './ML/CPU_poly_regressor.joblib',
+                poly_int_col1 = [0, 1, 2, 3],
+                degree1 = 10,
+                
                 columns = ['Release Year', 'Process Size (nm)', 'TDP', 'Base Clock', 'Boost Clock', 'L1 Cache Size', 'L2 Cache Size',
                     'Maximum Operating Temperature', 'Number of Cores', 'Number of Threads', 'System Memory Frequency', 'Launch Price ($)'],
-                lin_int_col  = [0, 2],
-                poly_int_col = [0, 2, -2, -1],
-                degree = 10)
-        # Metoda predict pentru GPU
+                
+                db_path = './Data/gaming.sqlite',
+                db_query = '''SELECT * FROM CPU WHERE [Release Year] > 1970 AND [Process Size (nm)] > 0 AND [Base Clock] IS NOT NULL AND
+                                [L1 Cache Size] IS NOT NULL AND [System Memory Frequency] IS NOT NULL AND [Number of Cores] > 0 AND
+                                [Launch Price ($)] > 0 AND [Maximum Operating Temperature] IS NOT NULL AND [TDP] IS NOT NULL''',
+
+                string_columns = ['Base Clock', 'Boost Clock', 'L1 Cache Size', 'L2 Cache Size', 'Maximum Operating Temperature',
+                'System Memory Frequency', 'TDP'])
+        
         cpu_processor.read_data()
-        df = cpu_processor.get_df()
+
+        df = cpu_processor.predicted_df
         df = reorder_columns(df, [0, 1, 8, 9, 3, 4, 5, 6, 10, 2, 7, 11])
-        df = df.add_size_unit_to_df(df, columns = ['TDP', 'Base Clock', 'Boost Clock', 'L1 Cache Size', 'L2 Cache Size',
+
+        df = add_size_units_to_df_values(df, columns = ['TDP', 'Base Clock', 'Boost Clock', 'L1 Cache Size', 'L2 Cache Size',
                     'Maximum Operating Temperature', 'System Memory Frequency'])
+        
+        columns_to_update = ['TDP', 'Base Clock', 'Boost Clock','L1 Cache Size', 'L2 Cache Size', 'Maximum Operating Temperature',
+                'System Memory Frequency', 'TDP']
+        for column in df.columns:
+            if column not in columns_to_update:
+                df[column] = df[column].astype(int)
         info = df.to_dict(orient='records')
 
+
+    # Return response in JSON-LD format
     context = {"@schema": contextul}
     data = {"@context": context, "@list": info}
     json_ld_doc = json.dumps(data, indent=4)
@@ -488,9 +478,19 @@ def get_data_for_ML():
     return response
 
 
-## de adaugat partea de delete
+# Define the route to delete items from mice/consoles/video_games tables
+@app.route('/delete_item_by_id', methods=['DELETE'])
+def delete_item_using_id():
+    response, status_code = delete_item_by_id()
+    return response, status_code
 
-##
+
+# Define the route to delete items from CPU/GPU tables
+@app.route('/delete_item', methods=['DELETE'])
+def delete_item_using_model_and_manufacturer_():
+    response, status_code = delete_item_by_model_and_manufacturer()
+    return response, status_code
+
 
 if __name__ == "__main__":
     app.run(host=host, port=port, debug=True)

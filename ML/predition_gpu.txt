@@ -3,13 +3,14 @@ Transistors (millions)=115796747.46808511
 Process Size (nm)=311.36245878397517
 TDP=7362.2638297872345
 Core Base Clock=0.09696942085511279
-Core Boost Clock=0.0998897667066008
-Memory Bandwidth=144542.81694181968
+Core Boost Clock=0.08312613436664174
+Memory Bandwidth=144543.18564532427
 Memory Size=231.54468051401167
 Integration Density=294.18346708618657
 Shading Units=5301618.595744681
-Memory Clock Speed (Effective)=217596787.9787234
+Memory Clock Speed (Effective)=217595571.29787233
 Launch Price ($)=23431559.702127658
 
-Total MSE=362279456.112918
-Polynomial Regression Degree=2
+Total MSE=362278239.78400683
+Linear Regression
+Polynomial Regression, Degree=2

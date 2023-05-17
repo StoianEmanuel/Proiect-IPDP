@@ -11,4 +11,6 @@ Number of Threads=281.7032967032967
 System Memory Frequency=383080.28571428574
 Launch Price ($)=584671.0879120879
 
-Total MSE,972515.0559333998Polynomial Regression Degree=10
+Total MSE=972515.0559333998
+Linear Regression
+Polynomial Regression, Degree=10
