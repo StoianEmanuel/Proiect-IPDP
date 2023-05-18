@@ -1,9 +1,9 @@
 import os
 import sqlite3
-from flask import Response, app, json, jsonify
+from flask import Response, json, jsonify
 
 
-# Get tables' names for a database
+# Get tables names for a database
 def get_all_tables(db_path):
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
@@ -20,6 +20,7 @@ def get_all_tables(db_path):
     return table_names
 
 
+# Get columns names for table
 def get_column_data(db_path = "./Data/gaming.sqlite", table_name = ''):
     conn = sqlite3.connect(db_path)
    
@@ -35,6 +36,7 @@ def get_column_data(db_path = "./Data/gaming.sqlite", table_name = ''):
     return meta
 
 
+# Get all columns name for a database
 def get_meta_data(db_path = "./Data/gaming.sqlite"):
     if not os.path.exists(db_path):
         error_response = {"error": "Database does not exist"}
