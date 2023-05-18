@@ -154,8 +154,6 @@ class ConsolePredictor:
                     self.predicted_df.loc[index, 'GPU Equivalent'] = self.gpu_df.loc[index_gpu, 'Manufacturer'] + ' ' + self.gpu_df.loc[
                         index_gpu, 'Model']
 
-        #self.predicted_df
-
 
     def add_units_for_prediction_df(self, data_type = ''):
         if data_type == 'predicted':
