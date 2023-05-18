@@ -3,7 +3,7 @@ import sqlite3, json, os
 import sys
 sys.path.insert(0, '../ML')
 from utils import add_size_units_to_df_values, remove_columns, reorder_columns
-from consoles_test import consoles_prediction
+from consoles_predictions import ConsolePredictor
 from predictions import Processor
 from delete_methods import delete_item_by_model_and_manufacturer, delete_item_by_id
 from meta_method import get_meta_data
@@ -347,7 +347,6 @@ def get_meta():
 def get_data_for_ML():
 
     data_type = request.args.get("data_type")
-    print(data_type,'\n\n')
     valid_data_types = ["consoles", "CPU", "GPU"]
     years = request.args.get("years")
 
@@ -374,12 +373,17 @@ def get_data_for_ML():
         years_int = sorted(set(years_int))
         years_int = list(years_int)
 
-        df = consoles_prediction(years = years_int, database_path = '../Data/gaming.sqlite',
-                                 linear_regressor_path = '../ML/consoles_linear_regressor.joblib',
-                                 polynomial_regressor_path1 = '../ML/consoles_poly_regressor1.joblib', poly_degree1 = 2,
-                                 polynomial_regressor_path2 = '../ML/consoles_poly_regressor2.joblib', poly_degree2 = 7)
+        consoles = ConsolePredictor(database_path = '../Data/gaming.sqlite', linear_regressor_path='../ML/consoles_linear_regressor.joblib',
+                 polynomial_regressor_path1='../ML/consoles_poly_regressor1.joblib', poly_degree1=2,
+                 polynomial_regressor_path2='../ML/consoles_poly_regressor2.joblib', poly_degree2=7)
         
-        df = reorder_columns(df, [0, 6, 5, 7, 2, 1, 3, 4, 8])
+        consoles.set_data_for_df()
+        consoles.prediction_for_consoles(years = years_int)
+
+        consoles.add_units_for_prediction_df('predicted')
+        df = consoles.predicted_df
+ 
+        df = reorder_columns(df, [0, 6, 7, 4, 1, 5, 2, 3, 8])
 
         info = df.to_dict(orient='records')
 

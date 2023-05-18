@@ -1,4 +1,5 @@
 from joblib import load
+import pandas as pd
 from utils import predicition, get_scores, add_boost, get_df, fill_column_with_mean_value, add_size_units_to_df_values
 
 
@@ -110,9 +111,9 @@ def consoles_prediction(years = [], database_path = '', linear_regressor_path = 
 
 
     # Print sets of 3 columns from dataframe
-    '''for i in range(0, console_df.shape[1], 3):
+    '''for i in range(0, console_df.shape[1], 2):
         pd.options.display.max_rows = None
-        print('\n', console_df.iloc[:, i:i+3])'''
+        print('\n', console_df.iloc[:, i:i+2])'''
 
     return console_df
 

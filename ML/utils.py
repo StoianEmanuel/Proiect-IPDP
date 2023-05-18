@@ -95,10 +95,11 @@ def convert_unit_to_gb(size_unit, numeric_value):
 
 
 def integer_or_float_value(value):
-    if value == round(value, 1):
-        value = int(value)
-    else:
-        value = round(value, 1)
+    str_value = str(value)
+    decimal_index = str_value.find('.')
+    
+    if decimal_index != -1 and decimal_index + 2 < len(str_value):
+        value = float(str_value[:decimal_index + 2])
     
     return value
 

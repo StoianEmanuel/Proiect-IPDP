@@ -1,0 +1,14 @@
+Column,MSE
+CPU Frequency,0.2866397033423776
+RAM Size,144.21887498844262
+RAM Frequency,28.240929421798214
+Units Sold (millions),1445.7189525958358
+Number of Exclusives,8314640.166666667
+Launch Price,94701.25
+CPU Score,554.6067728665316
+GPU Score,150010.7505994102
+
+Total MSE=8561525.239435654
+Linear Regression
+Polynomial Regression, Degree=2
+Polynomial Regression, Degree=7

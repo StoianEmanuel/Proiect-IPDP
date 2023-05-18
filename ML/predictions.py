@@ -52,10 +52,6 @@ class Processor:
                                         poly_regressor1 = self.poly_regressor1, poly_degree1 = self.degree1, poly_int_col1 = self.poly_int_col1,
                                         poly_regressor2 = self.poly_regressor2, poly_degree2 = self.degree2, poly_int_col2 = self.poly_int_col2)
 
-    # Possibilty that i won't need 
-    def get_df(self):
-        return self.predicted_df
-
 
     # Print predicted or original (data from database)
     def print_data(self, data_type=''):
@@ -96,7 +92,6 @@ class Processor:
         # Calculate Mean Squared Error (MSE) for each column
         mse_dict = {}
         mse_total = 0
-        l = 0
         n = len(predicted_df_aux[merge_column].values)
         m = len(original_df_aux[merge_column].values)
 
@@ -104,7 +99,7 @@ class Processor:
             if column != merge_column:
                 mse_i = 0
                 nr = 0
-
+                l = 0
                 for i in range(0, n):
                     for j in range(l, m):
                         if predicted_df_aux.loc[i, merge_column] == original_df_aux.loc[j, merge_column]:
@@ -116,8 +111,7 @@ class Processor:
                 
                 if nr != 0:
                     mse_i /= nr
-                
-                l = 0
+                    
                 mse_dict[column] = mse_i
                 mse_total += mse_i
         

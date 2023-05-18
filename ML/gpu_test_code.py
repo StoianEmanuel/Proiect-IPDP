@@ -17,14 +17,24 @@ for number in numbers:
 years_int = sorted(set(years_int))
 years_int = list(years_int)
 
-gpu_processor = Processor(linear_regressor_file = './ML/GPU_linear_regressor.joblib',
-        poly_regressor_file = './ML/GPU_poly_regressor.joblib',
-        year = years_int,
-        columns = ['Release Year', 'Transistors (millions)', 'Process Size (nm)', 'TDP', 'Core Base Clock', 'Core Boost Clock',
-    'Memory Bandwidth', 'Memory Size', 'Integration Density', 'Shading Units', 'Memory Clock Speed (Effective)', 'Launch Price ($)'],
-        lin_int_col  = [1, 2],
-        poly_int_col = [1, 2, 3],
-        degree = 2)
+gpu_processor = Processor (year = years_int,
+                    linear_regressor_file = './ML/GPU_linear_regressor.joblib',
+                    lin_int_col  = [0, 2],
+
+                    poly_regressor_file1 = './ML/GPU_poly_regressor.joblib',
+                    poly_int_col1 = [1, 2, 3],
+                    degree1 = 2,
+                    
+                    columns = ['Release Year', 'Transistors (millions)', 'Process Size (nm)', 'TDP', 'Core Base Clock', 'Core Boost Clock',
+            'Memory Bandwidth', 'Memory Size', 'Integration Density', 'Shading Units', 'Memory Clock Speed (Effective)', 'Launch Price ($)'],
+                    
+                    db_path = './Data/gaming.sqlite',
+                    db_query = '''SELECT * FROM GPU WHERE [Release Year] > 1989 AND [Transistors (millions)] > 0 AND [Integration Density] 
+                    IS NOT NULL AND [Process Size (nm)] > 0 AND [Core Base Clock] IS NOT NULL AND [Memory Size] IS NOT NULL AND 
+                    [Memory Bandwidth] IS NOT NULL AND [Memory Clock Speed (Effective)] IS NOT NULL AND [TDP] IS NOT NULL AND [Launch Price ($)] > 0''',
+
+                    string_columns = ['Core Base Clock', 'Core Boost Clock', 'Memory Clock Speed (Effective)', 'Memory Bandwidth', 
+                                      'Memory Size', 'TDP', 'Integration Density'])
 # Metoda predict pentru GPU
 gpu_processor.read_data()
 df = gpu_processor.get_df()
@@ -42,19 +52,24 @@ for column in columns:
 info = df.to_dict(orient='records')
 #print(info)
 
-gpu_processor = Processor(linear_regressor_file = './ML/GPU_linear_regressor.joblib',
-                poly_regressor_file = './ML/GPU_poly_regressor.joblib',
-                year = years_int,
-                columns = ['Release Year', 'Transistors (millions)', 'Process Size (nm)', 'TDP', 'Core Base Clock', 'Core Boost Clock',
+"""gpu_processor = Processor (year = years_int,
+                    linear_regressor_file = './ML/GPU_linear_regressor.joblib',
+                    lin_int_col  = [0, 2],
+
+                    poly_regressor_file1 = './ML/GPU_poly_regressor.joblib',
+                    poly_int_col1 = [1, 2, 3],
+                    degree1 = 2,
+                    
+                    columns = ['Release Year', 'Transistors (millions)', 'Process Size (nm)', 'TDP', 'Core Base Clock', 'Core Boost Clock',
             'Memory Bandwidth', 'Memory Size', 'Integration Density', 'Shading Units', 'Memory Clock Speed (Effective)', 'Launch Price ($)'],
-                lin_int_col  = [1, 2],
-                poly_int_col = [1, 2, 3],
-                degree = 2, 
-                db_path = './Data/gaming.sqlite',
-                db_query = 'SELECT * FROM GPU',
-                string_columns = ['Core Base Clock', 'Core Boost Clock', 'Memory Clock Speed (Effective)', 'Memory Bandwidth', 'Memory Size', 'TDP',
-                    'Integration Density'],
-                reduce_size = False)
+                    
+                    db_path = './Data/gaming.sqlite',
+                    db_query = '''SELECT * FROM GPU WHERE [Release Year] > 1989 AND [Transistors (millions)] > 0 AND [Integration Density] 
+                    IS NOT NULL AND [Process Size (nm)] > 0 AND [Core Base Clock] IS NOT NULL AND [Memory Size] IS NOT NULL AND 
+                    [Memory Bandwidth] IS NOT NULL AND [Memory Clock Speed (Effective)] IS NOT NULL AND [TDP] IS NOT NULL AND [Launch Price ($)] > 0''',
+
+                    string_columns = ['Core Base Clock', 'Core Boost Clock', 'Memory Clock Speed (Effective)', 'Memory Bandwidth', 
+                                      'Memory Size', 'TDP', 'Integration Density'])"""
 
 gpu = gpu_processor.original_df
 #print(gpu.columns)
