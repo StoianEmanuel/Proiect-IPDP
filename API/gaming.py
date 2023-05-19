@@ -13,23 +13,6 @@ app = Flask(__name__)
 # port = int(os.getenv('PORT', '8086'))
 
 
-# Function to return a value or the dessired value if value returned by condition is true
-def set_value_if(value, op, test_value, result):
-    if value is None:
-        return result
-    if op == "==" and value == test_value:
-        return result
-    if op == "<" and value < test_value:
-        return result
-    if op == "<=" and value <= test_value:
-        return result
-    if op == ">" and value > test_value:
-        return result
-    if op == ">=" and value >= test_value:
-        return result
-    return value
-
-
 # Function to test if value returned by a condition is true
 def test_value(value, op, test_value):
     if value is None:
@@ -47,43 +30,35 @@ def test_value(value, op, test_value):
     return False
 
 
-# Function used to update data from list lst and allow testing for simple or double condition
-def update(lst, filters):
-    for filter in filters:
-        poz1, op1, test_value1, result1 = filter[0:4]       # filter[0:4] = index1, 'comparison op', compared value, replace if condition
-        lst[poz1] = set_value_if(lst[poz1], op1, test_value1, result1)
-          
-        if len(filter) == 9:    # double condition
-            poz2, op2, test_value2, result2, modify = filter[4:9]
-            if modify == True:      # check if the second value can be modified
-                lst[poz2] = set_value_if(lst[poz2], op2, test_value2, result2)
-
-    return lst
-
-
 # Function used to test if values from list lst fulfill contions from filters
 def filter(lst, filters):
     count = 0
     length = len(lst)
 
     for filter in filters:
-        if len(filter) == 4:
-            poz1, op1, test_value1 = filter[0:3]
-            if test_value(lst[poz1], op1, test_value1) == True:
+        if len(filter) >= 4:
+            poz1, op1, test_value1, result1 = filter[0:4]
+            first_cond_val  = test_value(lst[poz1], op1, test_value1)
+
+            if len(filter) == 9:
+                poz2, op2, test_value2, result2, modify = filter[4:9]
+                second_cond_val = test_value(lst[poz2], op2, test_value2)
+                if first_cond_val and second_cond_val:
+                    count += 2
+                if modify and second_cond_val:
+                    lst[poz2] = result2
+                continue
+
+            if first_cond_val:
+                lst[poz1] = result1
                 count += 1
 
-        elif len(filter) == 9:  # double condition
-            poz1, op1, test_value1 = filter[0:3]
-            poz2, op2, test_value2 = filter[4:7]
-            if test_value(lst[poz1], op1, test_value1) == True and test_value(lst[poz2], op2, test_value2) == True:
-                count += 2
-
-    return count < length * 0.3
+    return count < length * 0.3, lst
     
 
 # Retrieve all data of certain type
 def get_all(datatype= '',  limit = None, apply_update = False, apply_filter = False, filter_conditions = None, extra_updates = None):
-    conn = sqlite3.connect("../Data/gaming.sqlite")
+    conn = sqlite3.connect("./Data/gaming.sqlite")
     cursor = conn.cursor()
     cursor.execute(f"SELECT * FROM {datatype}")
     rows = cursor.fetchall()
@@ -91,23 +66,24 @@ def get_all(datatype= '',  limit = None, apply_update = False, apply_filter = Fa
     l = 0
     for row in rows:
         row_list = list(row)
-        filter_value: bool
-        if apply_filter:
-            filter_value = filter(row_list, filter_conditions)
+    
+        if apply_filter or (not apply_filter and apply_update):
+            filter_value, values = filter(row_list, filter_conditions)
 
             if not filter_value:
                 continue
-            row_list = update(row_list, filter_conditions)
 
-        else:
-            if apply_update:
-                row_list = update(row_list, filter_conditions)
+            row_list = values
         
         # apply extra updates
         if extra_updates:
             for updates in extra_updates:
                 index, op, test_value, value = updates[0:4]
-                row_list[index] = set_value_if(row_list[index], op, test_value, value)
+                print(row_list[index], op, test_value, value, '\n')
+                filter_value, v = filter([row_list[index]], [[updates]])
+
+                if filter_value:
+                    row_list[index] = value
 
         values = {}
         length = len(row_list)
