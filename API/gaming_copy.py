@@ -79,7 +79,6 @@ def get_all(datatype= '',  limit = None, apply_update = False, apply_filter = Fa
         if extra_updates:
             for updates in extra_updates:
                 index, op, test_value, value = updates[0:4]
-                print(row_list[index], op, test_value, value, '\n')
                 filter_value, v = filter([row_list[index]], [[updates]])
 
                 if filter_value:
@@ -312,6 +311,19 @@ def get_meta():
     return response
 
 
+# Method to filter and sort year values used for predictions
+def get_years_for_predictions(years_list, min_value = 1975, max_value = 2030):
+    years_int = []
+    for number in years_list:
+        n = int(number)
+        if min_value <= n <= max_value:
+            years_int.append(n)
+
+    years_int = sorted(set(years_int))
+    years_int = list(years_int)
+    return years_int
+
+
 # Define the route to retrieve predictions for consoles/CPU/GPU
 @app.route("/get_prediction")
 def get_data_for_ML():
@@ -331,17 +343,10 @@ def get_data_for_ML():
         return jsonify(error_response), 400
     
     numbers = years.split(',')
-    years_int = []
 
     if data_type == "consoles":
         contextul = "SQLite/consoles"
-        for number in numbers:
-            n = int(number)
-            if 1985 <= n <= 2030:
-                years_int.append(n)
-
-        years_int = sorted(set(years_int))
-        years_int = list(years_int)
+        years_int = get_years_for_predictions(years_list=numbers, min_value=1985, max_value=2030)
 
         consoles = ConsolePredictor(database_path = './Data/gaming.sqlite', linear_regressor_path='./ML/consoles_linear_regressor.joblib',
                  polynomial_regressor_path1='./ML/consoles_poly_regressor1.joblib', poly_degree1=2,
@@ -359,14 +364,7 @@ def get_data_for_ML():
 
     elif data_type == "GPU":
         contextul = "SQLite/GPU"
-        for number in numbers:
-            n = int(number)
-            if 1990 <= n <= 2030:
-                years_int.append(n)
-
-        years_int = sorted(set(years_int))
-        years_int = list(years_int)
-
+        years_int = get_years_for_predictions(years_list=numbers, min_value=1990, max_value=2030)
 
         gpu_processor = Processor( year = years_int,
                     linear_regressor_file = './ML/GPU_linear_regressor.joblib',
@@ -404,13 +402,7 @@ def get_data_for_ML():
 
     else:
         contextul = "SQLite/CPU"
-        for number in numbers:
-            n = int(number)
-            if 1975 <= n <= 2030:
-                years_int.append(n)
-
-        years_int = sorted(set(years_int))
-        years_int = list(years_int)
+        years_int = get_years_for_predictions(years_list=numbers, min_value=1975, max_value=2030)
         
         cpu_processor = Processor(
                 year = years_int,
